@@ -194,9 +194,6 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
       </div>
     </div>
     <div class="controls">
-      <div class="field"><label for="atDate">Xem tại ngày</label><input type="date" id="atDate"></div>
-      <div class="field"><label for="soonDays">Sắp trống khi còn</label>
-        <select id="soonDays"><option value="7">≤ 7 ngày</option><option value="14" selected>≤ 14 ngày</option><option value="30">≤ 30 ngày</option></select></div>
       <button class="btn" id="reload" title="Tải lại dữ liệu từ Google Sheets">Tải lại</button>
     </div>
   </header>
@@ -467,7 +464,7 @@ function statusOf(t, D, soon){
     while(moved){ moved=false; for(const a of list){ if(a.s<=end+1&&a.e>end){ end=a.e; moved=true; } } }
     const main=active.slice().sort((a,b)=>b.e-a.e)[0];
     const pct=Math.max(0,Math.min(100,Math.round((D-main.s)/Math.max(1,main.e-main.s)*100)));
-    return {kind:(end-D)<=soon?'soon':'busy',active,end,freeFrom:end+1,left:end-D,pct,conflict,next:future.find(a=>a.s>end)};
+    return {kind:(end-D)<soon?'soon':'busy',active,end,freeFrom:end+1,left:end-D,pct,conflict,next:future.find(a=>a.s>end)};
   }
   return {kind:'free',active:[],end:null,freeFrom:D,left:0,conflict,next:future[0]};
 }
@@ -477,10 +474,11 @@ const posTag = p => `<span class="pos"><i style="background:${posColor(p)}"></i>
 
 // ---------- render ----------
 let statFilter='';
-const D_ = () => parseDate($('#atDate').value) ?? todayNum();
+const SOON_DAYS = 10; // cảnh báo khi còn dưới 10 ngày là xong việc
+const D_ = () => todayNum();
 function render(){
   if(!DATA) return;
-  const D=D_(), soon=+$('#soonDays').value;
+  const D=D_(), soon=SOON_DAYS;
   const rows=DATA.teachers.filter(t=>!t.missing||DATA.byKey[t.key]).map(t=>({t,st:statusOf(t,D,soon)}));
   renderStats(rows,soon);
   renderStaff(rows,D);
@@ -495,7 +493,7 @@ function renderStats(rows,soon){
   const items=[
     ['','Tổng giáo viên',c.all,'','var(--ink-3)'],
     ['free','Đang trống',c.free,'free','var(--free)'],
-    ['soon',`Sắp trống (≤ ${soon} ngày)`,c.soon,'soon','var(--soon)'],
+    ['soon',`Sắp trống (< ${soon} ngày)`,c.soon,'soon','var(--soon)'],
     ['busy','Đang dạy',c.busy,'busy','var(--busy)'],
     ['conflict','Trùng lịch',c.conflict,c.conflict?'bad':'','var(--bad)']
   ];
@@ -557,7 +555,7 @@ function renderGantt(D){
       html+=`<div class="g-row" style="${mw};min-height:${Math.max(40,12+lanes.length*28)}px"><div class="g-name"><b>${esc(t.name)}</b><small>${esc(typeLabel(t))}</small></div><div class="g-track" style="width:${width}px">${gridHtml}${bars}</div></div>`;
     });
   });
-  html+=`<div class="g-today" style="left:${190+x(D)}px"><span>${fmt(D)}</span></div>`;
+  html+=`<div class="g-today" style="left:${190+x(D)}px"><span>Hôm nay ${fmtShort(D)}</span></div>`;
   const el=$('#gantt'); el.innerHTML=people.length?html:'<div class="empty">Không có giáo viên.</div>';
   el.style.width=(width+190)+'px';
 }
@@ -756,14 +754,13 @@ $('#stats').addEventListener('click',e=>{
   const b=e.target.closest('.stat'); if(!b) return; const f=b.dataset.f;
   statFilter = statFilter===f ? '' : f; $('#fStatus').value=statFilter; showView('staff'); render();
 });
-['#q','#fPos','#fType','#fStatus','#gPos','#gType','#cFilter','#soonDays','#atDate','#lQ','#lPos','#lShow'].forEach(s=>$(s).addEventListener('input',()=>{ if(s==='#fStatus') statFilter=$(s).value; render(); }));
+['#q','#fPos','#fType','#fStatus','#gPos','#gType','#cFilter','#lQ','#lPos','#lShow'].forEach(s=>$(s).addEventListener('input',()=>{ if(s==='#fStatus') statFilter=$(s).value; render(); }));
 async function refresh(){
   try{ const j=await apiLoad(); if(!DEMO) RAW={teachers:j.teachers||[],assignments:j.assignments||[]}; else if(!RAW.teachers.length) RAW=j; build(); render(); }
   catch(err){ toast('Không tải được dữ liệu: '+err.message,true); }
 }
 $('#reload').addEventListener('click',()=>{ if(DEMO){ RAW={teachers:[],assignments:[]}; } refresh(); });
 
-$('#atDate').value=iso(todayNum());
 $('#fStart').value=iso(todayNum()); $('#fEnd').value=iso(todayNum()+30);
 $('#demoTag').hidden=!DEMO; setAdmin();
 refresh();

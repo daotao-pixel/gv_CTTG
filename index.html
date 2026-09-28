@@ -92,7 +92,10 @@ textarea{width:100%;min-height:130px;background:var(--surface);border:1px solid 
 .scroll{overflow-x:auto}
 
 table{border-collapse:collapse;width:100%}
-.staff-table{min-width:1020px} .asg-table{min-width:820px}
+.staff-table{min-width:1020px} .xe-table{min-width:1100px}
+.plate{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.02em;background:var(--accent-soft);color:var(--accent-strong);border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap;font-size:12.5px}
+.pick select{margin-top:6px;width:100%;max-width:340px;min-height:32px;padding:4px 8px;font-size:13px}
+.pick .xe-lbl{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:6px} .asg-table{min-width:820px}
 th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);background:var(--surface-2)}
 td.stt{color:var(--ink-3);font-variant-numeric:tabular-nums;width:48px;text-align:right}
@@ -206,6 +209,7 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
     <button class="tab" role="tab" aria-selected="true" data-view="staff">Giáo viên</button>
     <button class="tab" role="tab" aria-selected="false" data-view="gantt">Lịch biểu</button>
     <button class="tab" role="tab" aria-selected="false" data-view="course">Theo khoá</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="xe">Xe</button>
     <button class="tab" role="tab" aria-selected="false" data-view="assign">Phân công</button>
   </nav>
 
@@ -249,6 +253,25 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
     <div class="courses" id="courses"></div>
   </section>
 
+  <!-- XE -->
+  <section class="panel" id="view-xe" hidden>
+    <div class="panel-head">
+      <div class="controls">
+        <div class="field"><label for="xQ">Tìm</label><input type="search" id="xQ" placeholder="Biển số, giáo viên…"></div>
+        <div class="field"><label for="xPos">Vị trí</label><select id="xPos" class="posSel"></select></div>
+        <div class="field"><label for="xHang">Hạng</label><select id="xHang"></select></div>
+        <div class="field"><label for="xOwner">Sở hữu</label><select id="xOwner"><option value="">Tất cả</option><option value="center">Trung tâm</option><option value="other">Xe liên kết / cá nhân</option></select></div>
+        <div class="field"><label for="xStatus">Trạng thái</label><select id="xStatus"><option value="">Tất cả</option><option value="free">Trống</option><option value="soon">Sắp trống</option><option value="busy">Đang dùng</option><option value="conflict">Trùng xe</option></select></div>
+      </div>
+      <button class="btn primary" id="addXe" type="button">+ Thêm xe</button>
+    </div>
+    <div class="typebar" id="xeSummary" style="padding:12px 16px;border-bottom:1px solid var(--line)"></div>
+    <div class="scroll"><table class="xe-table">
+      <thead><tr><th>STT</th><th>Biển số</th><th>Hạng</th><th>Sở hữu</th><th>Vị trí</th><th>Trạng thái</th><th>Đang dùng</th><th>Trống từ</th><th>Tiếp theo</th><th></th></tr></thead>
+      <tbody id="xeBody"></tbody>
+    </table></div>
+  </section>
+
   <!-- PHÂN CÔNG -->
   <section class="panel" id="view-assign" hidden>
     <div class="panel-head">
@@ -289,7 +312,7 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
     </form>
 
     <div id="pasteBox" hidden style="padding:16px;display:flex;flex-direction:column;gap:10px">
-      <span class="note">Cột: <code>Giáo viên</code> <code>Vị trí</code> <code>Khoá</code> <code>Bắt đầu</code> <code>Kết thúc</code> <code>Ghi chú</code> · ngày dd/mm/yyyy</span>
+      <span class="note">Cột: <code>Giáo viên</code> <code>Vị trí</code> <code>Khoá</code> <code>Bắt đầu</code> <code>Kết thúc</code> <code>Xe</code> <code>Ghi chú</code> · ngày dd/mm/yyyy · Xe và Ghi chú không bắt buộc</span>
       <textarea id="pasteText" spellcheck="false" placeholder="Giáo viên	Vị trí	Khoá	Bắt đầu	Kết thúc"></textarea>
       <div class="row-acts"><button class="btn" id="pasteCheck" type="button">Kiểm tra</button><button class="btn primary" id="pasteSave" type="button" disabled>Lưu các dòng hợp lệ</button></div>
       <div id="pasteResult"></div>
@@ -305,7 +328,7 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
         </div>
       </div>
       <div class="scroll"><table class="asg-table">
-        <thead><tr><th>Giáo viên</th><th>Vị trí</th><th>Khoá</th><th>Thời gian</th><th>Ghi chú</th><th></th></tr></thead>
+        <thead><tr><th>Giáo viên</th><th>Vị trí</th><th>Xe</th><th>Khoá</th><th>Thời gian</th><th>Ghi chú</th><th></th></tr></thead>
         <tbody id="asgBody"></tbody>
       </table></div>
     </div>
@@ -321,6 +344,19 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
     <div class="field"><span class="lbl">Vị trí</span><div class="chk" id="gvPos"></div></div>
     <span class="note" id="gvErr" style="color:var(--bad)"></span>
     <div class="row-acts"><button class="btn primary" type="submit" id="gvSave">Lưu</button><button class="btn" type="button" id="gvCancel">Huỷ</button></div>
+  </form>
+</div>
+
+<div class="modal" id="xeModal" hidden>
+  <form class="box" id="xeForm" autocomplete="off">
+    <h3 id="xeTitle">Thêm xe</h3>
+    <div class="field"><label for="xePlate">Biển số</label><input type="text" id="xePlate" placeholder="VD: 63A-123.45" required></div>
+    <div class="field"><label for="xeHang">Hạng xe</label><input type="text" id="xeHang" list="hangList" placeholder="VD: B, B01, C1"><datalist id="hangList"></datalist></div>
+    <div class="field"><label for="xeOwnType">Sở hữu</label><select id="xeOwnType"><option>Trung tâm</option><option value="other">Xe liên kết / cá nhân</option></select></div>
+    <div class="field" id="xeOwnerF"><label for="xeOwner">Chủ xe</label><input type="text" id="xeOwner" list="ownerList" placeholder="VD: Nguyễn Văn Tiến"><datalist id="ownerList"></datalist></div>
+    <div class="field"><span class="lbl">Vị trí</span><div class="chk" id="xePos"></div></div>
+    <span class="note" id="xeErr" style="color:var(--bad)"></span>
+    <div class="row-acts"><button class="btn primary" type="submit" id="xeSave">Lưu</button><button class="btn" type="button" id="xeCancel">Huỷ</button></div>
   </form>
 </div>
 
@@ -345,12 +381,18 @@ const DEFAULT_POS = ['Sân thô','Đi DAT','Sa hình'];
 const ALL_POS_WORDS = ['tat ca','all'];
 // Danh sách giáo viên thực tế (từ file CTTG-Giáo viên thực tế) — chỉ dùng cho chế độ mẫu
 const GV_LIST = [["HUỲNH MINH CHÁNH", "Trung tâm", "Sân thô"], ["HUỲNH BÁ QUỐC", "Trung tâm", "Sân thô"], ["NGUYỄN TẤN HẢO", "Trung tâm", "Sân thô"], ["VÕ VĂN SUÔNH", "Trung tâm", "Sân thô"], ["NGÔ QUỐC PHONG", "Trung tâm", "Sân thô"], ["VŨ DUY BÌNH", "Trung tâm", "Đi DAT"], ["LÊ CHÍ CƯỜNG", "Trung tâm", "Đi DAT"], ["ĐỖ HUỲNH DUY", "Trung tâm", "Đi DAT"], ["MAI THÀNH ĐẠT", "Trung tâm", "Đi DAT"], ["TRẦN MINH HUYỀN", "Trung tâm", "Đi DAT"], ["TRẦN DU KHA", "Trung tâm", "Đi DAT"], ["TRẦN THANH LIÊM", "Trung tâm", "Đi DAT"], ["LÊ HOÀNG LONG", "Trung tâm", "Đi DAT"], ["TRƯƠNG BẢO LONG", "Trung tâm", "Đi DAT"], ["NGUYỄN QUANG MINH", "Trung tâm", "Đi DAT"], ["HUỲNH NGỌC SƠN", "Trung tâm", "Đi DAT"], ["VÕ CHÍ TÂM", "Trung tâm", "Đi DAT"], ["PHẠM MINH TIẾN", "Trung tâm", "Đi DAT"], ["NGUYỄN TRUNG TOÀN", "Trung tâm", "Đi DAT"], ["LƯƠNG MINH TRÍ", "Trung tâm", "Đi DAT"], ["NGUYỄN THÀNH TRUNG", "Trung tâm", "Đi DAT"], ["HUỲNH VĂN ÚT", "Trung tâm", "Đi DAT"], ["HUỲNH CÔNG VỊNH", "Trung tâm", "Đi DAT"], ["HUỲNH NGỌC VĂN", "Trung tâm", "Đi DAT"], ["TRƯƠNG VĂN HIỆP", "Trung tâm", "Đi DAT"], ["NGUYỄN VĂN TÒNG", "Trung tâm", "Đi DAT"], ["NGUYỄN PHÚC HẬU", "Trung tâm", "Đi DAT"], ["VÕ VĂN HIỆP", "Trung tâm", "Sa hình"], ["TRẦN MINH HUY", "Trung tâm", "Sa hình"], ["NGUYỄN QUỐC NHÂN", "Trung tâm", "Sa hình"], ["PHAN THÀNH PHÁT", "Trung tâm", "Sa hình"], ["NGUYỄN THANH PHONG", "Trung tâm", "Sa hình"], ["NGUYỄN VĂN TIẾN _ B01", "Liên kết_Sài Gòn", "Tất cả"], ["NGUYỄN ĐỨC VỮNG _ B", "Liên kết _ Mỹ Tho", "Tất cả"], ["VÕ HOÀI PHONG _ B", "Liên kết _ Vĩnh Kim", "Tất cả"], ["HUỲNH TRUNG CANG 1_ B", "Liên kết _ Mỹ Tho", "Tất cả"], ["HUỲNH TRUNG CANG 2 _ B", "Liên kết _ Mỹ Tho", "Tất cả"], ["NGUYỄN TRUNG XUÊ", "Liên kết _", "Tất cả"], ["LÊ CÔNG KHANH _ C1", "Liên kết _ Ngũ Hiệp", "Tất cả"], ["NGUYỄN NGỌC TRẦM 1 _ B", "Liên kết _ Tân Phước", "Tất cả"], ["NGUYỄN NGỌC TRẦM 2 _ B", "Liên kết _ Tân Phước", "Tất cả"], ["NGUYỄN NGỌC TRẦM 3 _ C1", "Liên kết _ Tân Phước", "Tất cả"], ["TRẦN HUỲNH HOÀI SƠN _ B01", "Liên kết _ Chợ Gạo", "Tất cả"], ["TRẦN TẤN PHÁT _ C1", "Liên kết _ Chợ Gạo", "Tất cả"], ["HUỲNH TRƯỜNG KHANH 1 _ C1", "Liên kết _ Tân Thạnh", "Tất cả"], ["HUỲNH TRƯỜNG KHANH 2 _ C1", "Liên kết _ Tân Thạnh", "Tất cả"], ["VÕ TỪ TẤN ĐẠT _ B", "Liên kết _ Bến Tre", "Tất cả"], ["NGUYỄN NGỌC HÂN _ B", "Liên kết _ Bến Tre", "Tất cả"], ["LƯƠNG TẤN LỘC _ C1", "Liên kết _ Bến Tre", "Tất cả"], ["PHAN VĂN QUỐC THUẬN _ C1", "Liên kết _ Bến Tre", "Tất cả"]];
+// Danh sách xe thực tế (từ file xe.xlsx) — chỉ dùng cho chế độ mẫu: [STT, Biển số, Hạng, Vị trí, Sở hữu]
+const XE_LIST = [[1, "63A-203.17", "B.01", "", "Trung tâm"], [2, "63A-203.31", "B.01", "", "Trung tâm"], [3, "63A-204.12", "B.01", "", "Trung tâm"], [4, "63A-204.20", "B.01", "", "Trung tâm"], [5, "63A-204.29", "B.01", "", "Trung tâm"], [6, "63A-204.30", "B.01", "", "Trung tâm"], [7, "63A-204.66", "B.01", "", "Trung tâm"], [8, "63A-204.69", "B.01", "", "Trung tâm"], [9, "63A-359.41", "B.01", "", "Trung tâm"], [10, "63A-360.08", "B.01", "", "Trung tâm"], [11, "72A-747.80", "B.01", "", "Nguyễn Văn Tiến"], [12, "51H-371.35", "B.01", "", "Phạm Cường Quốc"], [13, "68B-024.10", "B.01", "", "Trần Huỳnh Hoài Sơn"], [14, "63A-235.26", "B", "", "Trung tâm"], [15, "63A-235.97", "B", "", "Trung tâm"], [16, "63A-204.22", "B", "", "Trung tâm"], [17, "63A-235.21", "B", "", "Trung tâm"], [18, "63A-236.00", "B", "", "Trung tâm"], [19, "63A-235.95", "B", "", "Trung tâm"], [20, "63A-236.14", "B", "", "Trung tâm"], [21, "63A-235.92", "B", "", "Trung tâm"], [22, "63A-235.87", "B", "", "Trung tâm"], [23, "63A-235.74", "B", "", "Trung tâm"], [24, "63A-236.54", "B", "", "Trung tâm"], [25, "63A-235.83", "B", "", "Trung tâm"], [26, "63A-235.12", "B", "", "Trung tâm"], [27, "63A-203.01", "B", "", "Trung tâm"], [28, "63A-203.30", "B", "", "Trung tâm"], [29, "63A-203.41", "B", "", "Trung tâm"], [30, "63A-203.60", "B", "", "Trung tâm"], [31, "63A-203.91", "B", "", "Trung tâm"], [32, "63A-204.00", "B", "", "Trung tâm"], [33, "63A-204.21", "B", "", "Trung tâm"], [34, "63A-204.45", "B", "", "Trung tâm"], [35, "63A-204.47", "B", "", "Trung tâm"], [36, "63A-204.57", "B", "", "Trung tâm"], [37, "63A-295.85", "B", "", "Nguyễn Ngọc Trầm"], [38, "71A-192.58", "B", "", "Võ Từ Tấn Đạt"], [39, "71A-042.01", "B", "", "Võ Từ Tấn Đạt"], [40, "63A-239.14", "B", "", "Nguyễn Đức Vững"], [41, "63A-246.02", "B", "", "Huỳnh Trung Cang"], [42, "63A-251.81", "B", "", "Nguyễn Ngọc Trầm"], [43, "63A-325.54", "B", "", "Huỳnh Trung Cang"], [44, "66A-529.04", "B", "", "Võ Hoài Phong"], [45, "63C-176.54", "C1", "", "Trung tâm"], [46, "63C-176.56", "C1", "", "Trung tâm"], [47, "63C-176.53", "C1", "", "Trung tâm"], [48, "63C-176.94", "C1", "", "Trung tâm"], [49, "63C-176.64", "C1", "", "Trung tâm"], [50, "63C-176.67", "C1", "", "Trung tâm"], [51, "63C-176.76", "C1", "", "Trung tâm"], [52, "63C-176.95", "C1", "", "Trung tâm"], [53, "63C-176.97", "C1", "", "Trung tâm"], [54, "63C-176.85", "C1", "", "Trung tâm"], [55, "63C-190.98", "C1", "", "Trung tâm"], [56, "63C-190.94", "C1", "", "Trung tâm"], [57, "63C-189.48", "C1", "", "Trung tâm"], [58, "63C-189.87", "C1", "", "Trung tâm"], [59, "63C-190.64", "C1", "", "Trung tâm"], [60, "63C-190.70", "C1", "", "Trung tâm"], [61, "63C-201.97", "C1", "", "Trung tâm"], [62, "63C-201.08", "C1", "", "Trung tâm"], [63, "63C-198.89", "C1", "", "Trung tâm"], [64, "63C-201.06", "C1", "", "Trung tâm"], [65, "63A-203.28", "C1", "", "Trung tâm"], [66, "63A-203.38", "C1", "", "Trung tâm"], [67, "63A-204.37", "C1", "", "Trung tâm"], [68, "63A-204.49", "C1", "", "Trung tâm"], [69, "63A-204.88", "C1", "", "Trung tâm"], [70, "63C-176.91", "C1", "", "Trung tâm"], [71, "63C-176.55", "C1", "", "Trung tâm"], [72, "63A-203.43", "C1", "", "Trung tâm"], [73, "63A-204.76", "C1", "", "Trung tâm"], [74, "63C-223.04", "C1", "", "Trung tâm"], [75, "66A-514.62", "C1", "", "Trung tâm"], [76, "63C-176.75", "C1", "", "Trung tâm"], [77, "66A-514.97", "C1", "", "Trung tâm"], [78, "66A-528.51", "C1", "", "Trung tâm"], [79, "66A-529.35", "C1", "", "Trung tâm"], [80, "66A-545.56", "C1", "", "Trung tâm"], [81, "66A-541.01", "C1", "", "Trung tâm"], [82, "66A-545.63", "C1", "", "Trung tâm"], [83, "66A-545.62", "C1", "", "Trung tâm"], [84, "66A-545.71", "C1", "", "Trung tâm"], [85, "63C-237.85", "C1", "", "Huỳnh Trường Khanh"], [86, "66A-487.25", "C1", "", "Nguyễn Trung Xuê"], [87, "64A-349.97", "C1", "", "Võ Từ Tấn Đạt"], [88, "63B-025.68", "C1", "", "Lê Công Khanh"], [89, "68A-478.57", "C1", "", "Trần Huỳnh Hoài Sơn"], [90, "64A-412.20", "C1", "", "Võ Từ Tấn Đạt"], [91, "63C-226.54", "C1", "", "Nguyễn Ngọc Trầm"], [92, "63A-463.81", "C1", "", "Huỳnh Trường Khanh"], [93, "63C-176.62", "C", "", "Trung tâm"], [94, "63A-203.25", "D2", "", "Trung tâm"]];
 const POS_COLOR = {'san tho':'var(--p1)','di dat':'var(--p2)','sa hinh':'var(--p3)'};
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/\s+/g,' ').trim();
 const ss = {get(k){try{return sessionStorage.getItem(k)}catch(e){return null}}, set(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}, del(k){try{sessionStorage.removeItem(k)}catch(e){}}};
+// tên chủ xe "Nguyễn Văn Tiến" khớp giáo viên "NGUYỄN VĂN TIẾN _ B01" / "… 1_ B"
+const ownerKey = s => norm(String(s||'').split('_')[0]).replace(/\s+\d+$/,'').trim();
+const ownsXe = (t,x) => !!x.ownerKey && ownerKey(t.name)===x.ownerKey;
+const plateKey = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const posColor = p => POS_COLOR[norm(p)] || 'var(--p0)';
 
 // ---------- ngày ----------
@@ -384,8 +426,10 @@ function sampleData(){
     a('VÕ VĂN HIỆP','Sa hình','K26B2-07',-5,20), a('TRẦN MINH HUY','Sa hình','K26B2-06',-50,-3), a('NGUYỄN QUỐC NHÂN','Sa hình','K26B2-08',10,35),
     a('NGUYỄN ĐỨC VỮNG _ B','Sân thô','K26B2-10',15,70), a('LÊ CÔNG KHANH _ C1','Đi DAT','K26C1-03',-10,40), a('VÕ TỪ TẤN ĐẠT _ B','Sa hình','K26B1-05',3,28)
   ];
-  assignments.forEach((x,i)=>x.id='DEMO'+i);
-  return {teachers,assignments};
+  const xe=XE_LIST.map(([stt,plate,hang,pos,owner])=>({stt,row:stt+1,plate,hang,pos,owner}));
+  const giveXe={'HUỲNH MINH CHÁNH':'63A-203.17','HUỲNH BÁ QUỐC':'63A-203.31','NGUYỄN TẤN HẢO':'63A-235.26','VŨ DUY BÌNH':'63A-235.97','LÊ CHÍ CƯỜNG':'63A-204.22','ĐỖ HUỲNH DUY':'63C-176.54','TRẦN THANH LIÊM':'63C-176.56','VÕ VĂN HIỆP':'63A-204.12','NGUYỄN QUỐC NHÂN':'63A-204.20','MAI THÀNH ĐẠT':'63C-176.54','NGUYỄN ĐỨC VỮNG _ B':'63A-239.14','LÊ CÔNG KHANH _ C1':'63B-025.68','VÕ TỪ TẤN ĐẠT _ B':'71A-192.58'};
+  assignments.forEach((x,i)=>{ x.id='DEMO'+i; x.xe=giveXe[x.name]||''; });
+  return {teachers,assignments,xe};
 }
 // ---------- API ----------
 const DEMO = !API_URL;
@@ -408,6 +452,10 @@ function demoPost(b){
   if(b.action==='add'){ b.rows.forEach(r=>RAW.assignments.push({...r,id:'DEMO'+(demoSeq++)})); return {ok:true,added:b.rows.length}; }
   if(b.action==='update'){ const i=RAW.assignments.findIndex(x=>x.id===b.row.id); if(i>=0) RAW.assignments[i]={...b.row}; return {ok:true}; }
   if(b.action==='delete'){ RAW.assignments=RAW.assignments.filter(x=>x.id!==b.id); return {ok:true}; }
+  if(b.action==='addXe'){ if(RAW.xe.some(x=>plateKey(x.plate)===plateKey(b.xe.plate))) return {ok:false,error:'Biển số này đã có'}; const stt=Math.max(0,...RAW.xe.map(x=>+x.stt||0))+1; RAW.xe.push({...b.xe,stt}); return {ok:true}; }
+  if(b.action==='updateXe'){ const x=RAW.xe.find(v=>plateKey(v.plate)===plateKey(b.xe.oldPlate)); if(!x) return {ok:false,error:'Không tìm thấy xe'};
+    if(plateKey(b.xe.plate)!==plateKey(b.xe.oldPlate)&&RAW.xe.some(v=>plateKey(v.plate)===plateKey(b.xe.plate))) return {ok:false,error:'Biển số này đã có'};
+    RAW.assignments.forEach(a=>{ if(plateKey(a.xe)===plateKey(b.xe.oldPlate)) a.xe=b.xe.plate; }); Object.assign(x,{plate:b.xe.plate,hang:b.xe.hang,pos:b.xe.pos,owner:b.xe.owner}); return {ok:true}; }
   if(b.action==='addGV'){ if(RAW.teachers.some(t=>norm(t.name)===norm(b.gv.name))) return {ok:false,error:'Đã có giáo viên tên này'}; const stt=Math.max(0,...RAW.teachers.map(t=>+t.stt||0))+1; RAW.teachers.push({...b.gv,stt,row:RAW.teachers.length+2}); return {ok:true}; }
   if(b.action==='updateGV'){ const t=RAW.teachers.find(x=>norm(x.name)===norm(b.gv.oldName)); if(!t) return {ok:false,error:'Không tìm thấy giáo viên'};
     if(norm(b.gv.name)!==norm(b.gv.oldName)&&RAW.teachers.some(x=>norm(x.name)===norm(b.gv.name))) return {ok:false,error:'Đã có giáo viên tên này'};
@@ -416,7 +464,7 @@ function demoPost(b){
 }
 
 // ---------- trạng thái ----------
-let RAW={teachers:[],assignments:[]}, DATA=null;
+let RAW={teachers:[],assignments:[],xe:[]}, DATA=null;
 function build(){
   const teachers = RAW.teachers.filter(t=>t.name).map((t,i)=>{
     let pos = String(t.pos||'').split(/[,;\/\n]+/).map(s=>s.trim()).filter(Boolean);
@@ -435,7 +483,7 @@ function build(){
     const s=parseDate(a.s), e=parseDate(a.e); if(s==null||e==null) return;
     let t = (a.ma && byMa[norm(a.ma)]) || byName[norm(a.name)];
     if(!t){ t={ma:a.ma||'',stt:9999,name:a.name||a.ma||'(không rõ)',type:'Không có trong danh sách',pos:[a.pos||'Chưa rõ vị trí'],missing:true}; t.key=t.ma||'n:'+norm(t.name); teachers.push(t); if(t.ma) byMa[norm(t.ma)]=t; byName[norm(t.name)]=t; orphan.push(t.name); }
-    asg.push({id:a.id,t,key:t.key,pos:a.pos||'',course:String(a.course||'').trim(),s:Math.min(s,e),e:Math.max(s,e),note:a.note||'',conflict:false});
+    asg.push({id:a.id,t,key:t.key,xe:String(a.xe||'').trim(),xeKey:plateKey(a.xe),xeConflict:false,pos:a.pos||'',course:String(a.course||'').trim(),s:Math.min(s,e),e:Math.max(s,e),note:a.note||'',conflict:false});
   });
   const byKey={};
   asg.forEach(x=>(byKey[x.key]=byKey[x.key]||[]).push(x));
@@ -443,7 +491,21 @@ function build(){
     for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++) if(list[j].s<=list[i].e){ list[i].conflict=list[j].conflict=true; } });
   const positions=[...new Set([...DEFAULT_POS,...teachers.flatMap(t=>t.pos),...asg.map(a=>a.pos)].filter(p=>p&&p!=='Chưa rõ vị trí'))];
   const types=[...new Set(teachers.map(t=>t.type))].sort((a,b)=>a.localeCompare(b,'vi'));
-  DATA={teachers,byMa,byName,asg,byKey,positions,types};
+  // xe
+  const xes=(RAW.xe||[]).filter(x=>x.plate).map((x,i)=>{
+    let pos=String(x.pos||'').split(/[,;\/\n]+/).map(v=>v.trim()).filter(Boolean);
+    const allPos=pos.some(p=>ALL_POS_WORDS.includes(norm(p))); if(allPos) pos=DEFAULT_POS.slice();
+    const noPos=!pos.length; if(noPos) pos=DEFAULT_POS.slice();
+    const owner=String(x.owner||'').trim()||'Trung tâm';
+    const center=norm(owner)==='trung tam';
+    return {stt:+x.stt||i+1,row:x.row,plate:String(x.plate).trim(),key:plateKey(x.plate),hang:String(x.hang||'').trim(),pos,allPos,noPos,owner,center,ownerKey:center?'':ownerKey(owner)};
+  });
+  const byXe={}; asg.filter(a=>a.xeKey).forEach(a=>(byXe[a.xeKey]=byXe[a.xeKey]||[]).push(a));
+  Object.values(byXe).forEach(list=>{ list.sort((a,b)=>a.s-b.s);
+    for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++) if(list[j].s<=list[i].e){ list[i].xeConflict=list[j].xeConflict=true; } });
+  const xeByKey={}; xes.forEach(x=>xeByKey[x.key]=x);
+  const hangs=[...new Set(xes.map(x=>x.hang).filter(Boolean))].sort();
+  DATA={teachers,byMa,byName,asg,byKey,positions,types,xes,byXe,xeByKey,hangs};
   fillSelects();
 }
 function fillSelects(){
@@ -451,6 +513,8 @@ function fillSelects(){
   $$('.typeSel').forEach(el=>{ const cur=el.value; el.innerHTML='<option value="">Tất cả</option>'+DATA.types.map(p=>`<option>${esc(p)}</option>`).join(''); el.value=DATA.types.includes(cur)?cur:''; });
   const fp=$('#fAsgPos'), cur=fp.value; fp.innerHTML=DATA.positions.map(p=>`<option>${esc(p)}</option>`).join(''); if(DATA.positions.includes(cur)) fp.value=cur;
   const courses=[...new Set(DATA.asg.map(a=>a.course))].sort((a,b)=>b.localeCompare(a,'vi'));
+  $('#hangList').innerHTML=DATA.hangs.map(h=>`<option value="${esc(h)}">`).join('');
+  { const el=$('#xHang'), cur=el.value; el.innerHTML='<option value="">Tất cả</option>'+DATA.hangs.map(h=>`<option>${esc(h)}</option>`).join(''); el.value=DATA.hangs.includes(cur)?cur:''; }
   $('#branchList').innerHTML=[...new Set(DATA.teachers.map(t=>t.branch).filter(Boolean))].map(b=>`<option value="${esc(b)}">`).join('');
   $('#courseList').innerHTML=courses.map(c=>`<option value="${esc(c)}">`).join('');
 }
@@ -470,6 +534,7 @@ function statusOf(t, D, soon){
 }
 const posLabel = t => t.allPos ? 'Tất cả vị trí' : t.pos.join(', ');
 const typeLabel = t => t.type + (t.branch ? ' · '+t.branch : '');
+const plateTag = p => p ? `<span class="plate">${esc(p)}</span>` : '';
 const posTag = p => `<span class="pos"><i style="background:${posColor(p)}"></i>${esc(p)}</span>`;
 
 // ---------- render ----------
@@ -484,6 +549,7 @@ function render(){
   renderStaff(rows,D);
   renderGantt(D);
   renderCourses(D);
+  renderXe(D);
   renderPicker();
   renderAsgList(D);
 }
@@ -518,7 +584,7 @@ function renderStaff(rows,D){
     const label={free:'Đang trống',soon:'Sắp trống',busy:'Đang dạy'}[st.kind];
     let pills=`<span class="pill ${st.kind}">${label}</span>`;
     if(st.conflict) pills+=` <span class="pill bad">Trùng lịch</span>`;
-    const cur=st.active.length?st.active.map(a=>`<div><span class="name">${esc(a.course)}</span> · ${posTag(a.pos)}</div><div class="sub num">${fmt(a.s)} → ${fmt(a.e)}</div>`).join(''):'<span class="muted">—</span>';
+    const cur=st.active.length?st.active.map(a=>`<div><span class="name">${esc(a.course)}</span> · ${posTag(a.pos)} ${plateTag(a.xe)}</div><div class="sub num">${fmt(a.s)} → ${fmt(a.e)}</div>`).join(''):'<span class="muted">—</span>';
     const done=st.active.length?`<div class="num">${fmt(st.end)}</div><div class="sub num">còn ${st.left} ngày</div><div class="meter ${st.kind==='soon'?'soon':''}"><i style="width:${st.pct}%"></i></div>`:'<span class="muted">—</span>';
     const free=st.kind==='free'?`<b style="color:var(--free)">Ngay bây giờ</b>`:`<span class="num">${fmt(st.freeFrom)}</span>`;
     const nxt=st.next?`<div>${esc(st.next.course)} · ${posTag(st.next.pos)}</div><div class="sub num">từ ${fmt(st.next.s)}${st.kind==='free'?` · còn trống ${st.next.s-D} ngày`:''}</div>`:`<span class="muted">Chưa có</span>`;
@@ -550,7 +616,7 @@ function renderGantt(D){
         let ln=lanes.findIndex(end=>end<a.s); if(ln<0){ ln=lanes.length; lanes.push(a.e); } else lanes[ln]=a.e;
         const L=Math.max(a.s,lo), R=Math.min(a.e,hi);
         const cls=(a.conflict?' conflict':'')+(a.e<D?' past':'');
-        return `<div class="g-bar${cls}" style="top:${8+ln*28}px;left:${x(L)}px;width:${Math.max(W,(R-L+1)*W)}px;background:${posColor(a.pos)}" title="${esc(a.course)} · ${esc(a.pos)}: ${fmt(a.s)} → ${fmt(a.e)}${a.conflict?' (trùng lịch)':''}">${esc(a.course)}</div>`;
+        return `<div class="g-bar${cls}" style="top:${8+ln*28}px;left:${x(L)}px;width:${Math.max(W,(R-L+1)*W)}px;background:${posColor(a.pos)}" title="${esc(a.course)} · ${esc(a.pos)}${a.xe?' · xe '+esc(a.xe):''}: ${fmt(a.s)} → ${fmt(a.e)}${a.conflict?' (trùng lịch)':''}">${esc(a.course)}</div>`;
       }).join('');
       html+=`<div class="g-row" style="${mw};min-height:${Math.max(40,12+lanes.length*28)}px"><div class="g-name"><b>${esc(t.name)}</b><small>${esc(typeLabel(t))}</small></div><div class="g-track" style="width:${width}px">${gridHtml}${bars}</div></div>`;
     });
@@ -571,13 +637,20 @@ function renderCourses(D){
     const ph={upcoming:`<span class="pill neutral">Bắt đầu sau ${c.s-D} ngày</span>`,running:`<span class="pill busy">Đang diễn ra</span>`,done:`<span class="pill neutral">Đã kết thúc</span>`}[phase];
     const pct=phase==='running'?Math.round((D-c.s)/Math.max(1,c.e-c.s)*100):phase==='done'?100:0;
     const byPos={}; c.items.forEach(a=>(byPos[a.pos]=byPos[a.pos]||[]).push(a));
-    const groups=Object.entries(byPos).map(([p,items])=>`<div class="posgroup"><div style="display:flex;justify-content:space-between">${posTag(p)}<b class="num">${items.length}</b></div><div class="people">${items.map(a=>`<span class="chip ${a.conflict?'bad':''}" title="${fmt(a.s)} → ${fmt(a.e)}">${esc(a.t.name)} <span class="muted num">${fmtShort(a.s)}–${fmtShort(a.e)}</span></span>`).join('')}</div></div>`).join('');
+    const groups=Object.entries(byPos).map(([p,items])=>`<div class="posgroup"><div style="display:flex;justify-content:space-between">${posTag(p)}<b class="num">${items.length}</b></div><div class="people">${items.map(a=>`<span class="chip ${a.conflict?'bad':''}" title="${fmt(a.s)} → ${fmt(a.e)}">${esc(a.t.name)} ${plateTag(a.xe)} <span class="muted num">${fmtShort(a.s)}–${fmtShort(a.e)}</span></span>`).join('')}</div></div>`).join('');
     return `<article class="course"><div class="course-top"><div><h3>${esc(c.name)}</h3><div class="sub num">${fmt(c.s)} → ${fmt(c.e)}</div></div>${ph}</div><div class="progress"><i style="width:${pct}%"></i></div>${groups}</article>`;
   }).join('');
 }
 
 // ---------- form phân công ----------
-let selected=new Set(), editing=null, confirmPending=false;
+let selected=new Set(), selXe=new Map(), editing=null, confirmPending=false;
+function xeBusy(x,r){ return (DATA.byXe[x.key]||[]).filter(a=>a.s<=r.e&&a.e>=r.s&&(!editing||a.id!==editing.id)); }
+function suggestXe(t,pos,r){
+  const hist=(DATA.byKey[t.key]||[]).filter(a=>a.xeKey&&a.pos===pos).sort((a,b)=>b.e-a.e);
+  for(const a of hist){ const x=DATA.xeByKey[a.xeKey]; if(x&&(!r||!xeBusy(x,r).length)) return x.plate; }
+  const own=DATA.xes.filter(x=>ownsXe(t,x)&&(x.allPos||x.pos.includes(pos))&&(!r||!xeBusy(x,r).length));
+  return own.length===1?own[0].plate:'';
+}
 function rangeOf(){ const s=parseDate($('#fStart').value), e=parseDate($('#fEnd').value); return (s!=null&&e!=null&&e>=s)?{s,e}:null; }
 function overlapsOf(t,r){ return (DATA.byKey[t.key]||[]).filter(a=>a.s<=r.e&&a.e>=r.s&&(!editing||a.id!==editing.id)); }
 function renderPicker(){
@@ -590,18 +663,31 @@ function renderPicker(){
   else $('#picker').innerHTML=info.map(({t,ov})=>{
     const st = !r ? '<span class="pill neutral">Chọn ngày để xem</span>' : ov.length ? `<span class="pill bad" title="${ov.map(a=>esc(a.course)+' '+fmt(a.s)+'→'+fmt(a.e)).join('; ')}">Bận ${esc(ov[0].course)} đến ${fmtShort(Math.max(...ov.map(a=>a.e)))}</span>` : '<span class="pill free">Trống</span>';
     const on=selected.has(t.key);
-    return `<label class="pick ${on?'sel':''}"><input type="checkbox" data-k="${esc(t.key)}" ${on?'checked':''}><span><b>${esc(t.name)}</b><span class="sub">${esc(t.ma)}${t.ma?' · ':''}${esc(typeLabel(t))} · ${esc(posLabel(t))}</span></span>${st}</label>`;
+    let xeSel='';
+    if(on){
+      if(!selXe.has(t.key)) selXe.set(t.key, suggestXe(t,pos,r));
+      const cur=selXe.get(t.key);
+      const opts=DATA.xes.filter(x=>x.allPos||x.pos.includes(pos)||plateKey(cur)===x.key).sort((a,b)=>(ownsXe(t,b)-ownsXe(t,a))||(t.type==='Liên kết'?0:(b.center-a.center))||a.stt-b.stt).map(x=>{
+        const b=r?xeBusy(x,r):[]; const used=[...selected].some(k=>k!==t.key&&plateKey(selXe.get(k))===x.key);
+        const tag=b.length?` · bận (${b[0].t.name.split(' ').slice(-1)[0]}) đến ${fmtShort(Math.max(...b.map(a=>a.e)))}`:used?' · đang chọn cho GV khác':' · trống';
+        return `<option value="${esc(x.plate)}" ${plateKey(cur)===x.key?'selected':''}>${esc(x.plate)}${x.hang?' · '+esc(x.hang):''}${ownsXe(t,x)?' · xe của GV':(!x.center?' · xe '+esc(x.owner):'')}${tag}</option>`;
+      }).join('');
+      xeSel=`<span class="xe-lbl">Xe</span><select data-xe="${esc(t.key)}" aria-label="Xe cho ${esc(t.name)}"><option value="">— Chưa chọn xe —</option>${opts}</select>`;
+    }
+    return `<label class="pick ${on?'sel':''}"><input type="checkbox" data-k="${esc(t.key)}" ${on?'checked':''}><span><b>${esc(t.name)}</b><span class="sub">${esc(t.ma)}${t.ma?' · ':''}${esc(typeLabel(t))} · ${esc(posLabel(t))}</span>${xeSel}</span>${st}</label>`;
   }).join('');
   $('#pickCount').textContent = selected.size ? `Đã chọn ${selected.size} giáo viên` : 'Chưa chọn ai';
   $('#saveBtn').textContent = editing ? 'Lưu thay đổi' : `Lưu phân công${selected.size?` (${selected.size})`:''}`;
   confirmPending=false; $('#conflictBox').hidden=true;
 }
 $('#picker').addEventListener('change',e=>{
+  if(e.target.dataset.xe){ selXe.set(e.target.dataset.xe,e.target.value); renderPicker(); return; }
   const k=e.target.dataset.k; if(!k) return;
-  if(e.target.checked){ if(editing) selected.clear(); selected.add(k); } else selected.delete(k);
+  if(e.target.checked){ if(editing){ selected.clear(); selXe.clear(); } selected.add(k); } else { selected.delete(k); selXe.delete(k); }
   renderPicker();
 });
-['#fAsgPos','#pAll','#pType','#pQ','#fStart','#fEnd'].forEach(s=>$(s).addEventListener('input',renderPicker));
+['#pAll','#pType','#pQ','#fStart','#fEnd'].forEach(s=>$(s).addEventListener('input',renderPicker));
+$('#fAsgPos').addEventListener('input',()=>{ if(!editing) selXe.clear(); renderPicker(); });
 $('#fCourse').addEventListener('change',()=>{
   const c=norm($('#fCourse').value); const items=DATA.asg.filter(a=>norm(a.course)===c);
   if(items.length && !editing){ $('#fStart').value=iso(Math.min(...items.map(a=>a.s))); $('#fEnd').value=iso(Math.max(...items.map(a=>a.e))); renderPicker(); }
@@ -614,39 +700,45 @@ $('#assignForm').addEventListener('submit',async e=>{
   if(!selected.size) return toast('Chọn ít nhất một giáo viên ở danh sách bên phải.',true);
   const ts=[...selected].map(k=>DATA.teachers.find(t=>t.key===k)).filter(Boolean);
   const bad=ts.map(t=>({t,ov:overlapsOf(t,r)})).filter(x=>x.ov.length);
-  if(bad.length && !confirmPending){
+  const xeBad=[]; const seen={};
+  ts.forEach(t=>{ const pk=plateKey(selXe.get(t.key)); if(!pk) return;
+    const x=DATA.xeByKey[pk]; const b=x?xeBusy(x,r):[];
+    if(b.length) xeBad.push(`Xe ${esc(selXe.get(t.key))} (${esc(t.name)}): đang dùng cho ${b.map(a=>esc(a.t.name)+' – '+esc(a.course)+' ('+fmtShort(a.s)+'–'+fmtShort(a.e)+')').join(', ')}`);
+    if(seen[pk]) xeBad.push(`Xe ${esc(selXe.get(t.key))} được chọn cho cả ${esc(seen[pk])} và ${esc(t.name)}`); else seen[pk]=t.name; });
+  const noXe=ts.filter(t=>!selXe.get(t.key)).length;
+  if((bad.length||xeBad.length) && !confirmPending){
     confirmPending=true;
     const box=$('#conflictBox'); box.hidden=false;
-    box.innerHTML=`<b>${bad.length} giáo viên bị trùng lịch:</b><div>${bad.map(x=>`${esc(x.t.name)}: ${x.ov.map(a=>esc(a.course)+' ('+fmtShort(a.s)+'–'+fmtShort(a.e)+')').join(', ')}`).join('<br>')}</div><div class="acts"><button type="submit" class="btn danger small">Vẫn lưu</button><button type="button" class="btn small" id="dropBad">Bỏ những người này</button></div>`;
-    $('#dropBad').onclick=()=>{ bad.forEach(x=>selected.delete(x.t.key)); renderPicker(); };
+    box.innerHTML=`${bad.length?`<b>${bad.length} giáo viên bị trùng lịch:</b><div>${bad.map(x=>`${esc(x.t.name)}: ${x.ov.map(a=>esc(a.course)+' ('+fmtShort(a.s)+'–'+fmtShort(a.e)+')').join(', ')}`).join('<br>')}</div>`:''}${xeBad.length?`<b>Trùng xe:</b><div>${xeBad.join('<br>')}</div>`:''}<div class="acts"><button type="submit" class="btn danger small">Vẫn lưu</button>${bad.length?'<button type="button" class="btn small" id="dropBad">Bỏ GV trùng lịch</button>':''}</div>`;
+    if(bad.length) $('#dropBad').onclick=()=>{ bad.forEach(x=>{ selected.delete(x.t.key); selXe.delete(x.t.key); }); renderPicker(); };
     return;
   }
   if(!await ensureAdmin()) return;
-  const rows=ts.map(t=>({ma:t.ma,name:t.name,pos,course,s:iso(r.s),e:iso(r.e),note}));
+  const rows=ts.map(t=>({ma:t.ma,name:t.name,pos,course,s:iso(r.s),e:iso(r.e),note,xe:selXe.get(t.key)||''}));
   try{
     $('#saveBtn').disabled=true;
     if(editing){ await apiPost({action:'update',row:{...rows[0],id:editing.id}}); toast('Đã lưu thay đổi.'); }
     else { await apiPost({action:'add',rows}); toast(`Đã lưu ${rows.length} phân công.`); }
-    selected.clear(); stopEdit(); await refresh();
+    selected.clear(); selXe.clear(); stopEdit(); await refresh();
   }catch(err){ toast(err.message,true); if(/mật khẩu/i.test(err.message)){ adminPass=''; ss.del('pcgv_pass'); setAdmin(); } }
   finally{ $('#saveBtn').disabled=false; }
 });
 function startEdit(a){
-  editing=a; selected=new Set([a.key]);
+  editing=a; selected=new Set([a.key]); selXe=new Map([[a.key,a.xe]]);
   $('#fCourse').value=a.course; $('#fAsgPos').value=a.pos; $('#fStart').value=iso(a.s); $('#fEnd').value=iso(a.e); $('#fNote').value=a.note;
   const b=$('#editBanner'); b.hidden=false; b.innerHTML=`Đang sửa phân công của <b>${esc(a.t.name)}</b> ở khoá <b>${esc(a.course)}</b>. Chọn người khác ở danh sách bên phải nếu muốn đổi giáo viên.`;
   $('#cancelEdit').hidden=false; setMode('form'); showView('assign'); renderPicker();
   $('#assignForm').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function stopEdit(){ editing=null; $('#editBanner').hidden=true; $('#cancelEdit').hidden=true; $('#fNote').value=''; renderPicker(); }
-$('#cancelEdit').addEventListener('click',()=>{ selected.clear(); stopEdit(); });
+$('#cancelEdit').addEventListener('click',()=>{ selected.clear(); selXe.clear(); stopEdit(); });
 
 function renderAsgList(D){
   const q=norm($('#lQ').value), pos=$('#lPos').value, show=$('#lShow').value;
-  let list=DATA.asg.filter(a=>(show==='all'||a.e>=D)&&(!pos||a.pos===pos)&&(!q||norm(a.t.name+' '+a.t.ma+' '+a.course+' '+a.note).includes(q)));
+  let list=DATA.asg.filter(a=>(show==='all'||a.e>=D)&&(!pos||a.pos===pos)&&(!q||norm(a.t.name+' '+a.t.ma+' '+a.course+' '+a.note+' '+a.xe+' '+a.xeKey).includes(q)));
   list.sort((a,b)=>a.course.localeCompare(b.course,'vi')||a.pos.localeCompare(b.pos,'vi')||a.t.name.localeCompare(b.t.name,'vi'));
-  if(!list.length){ $('#asgBody').innerHTML='<tr><td colspan="6" class="empty">Chưa có phân công nào.</td></tr>'; return; }
-  $('#asgBody').innerHTML=list.map(a=>`<tr data-id="${esc(a.id)}"><td><div class="name">${esc(a.t.name)}</div><div class="sub">${esc(typeLabel(a.t))} ${a.conflict?'<span class="pill bad">Trùng lịch</span>':''}</div></td><td>${posTag(a.pos)}</td><td>${esc(a.course)}</td><td class="num">${fmt(a.s)} → ${fmt(a.e)}<div class="sub">${a.e-a.s+1} ngày</div></td><td class="sub">${esc(a.note)}</td>
+  if(!list.length){ $('#asgBody').innerHTML='<tr><td colspan="7" class="empty">Chưa có phân công nào.</td></tr>'; return; }
+  $('#asgBody').innerHTML=list.map(a=>`<tr data-id="${esc(a.id)}"><td><div class="name">${esc(a.t.name)}</div><div class="sub">${esc(typeLabel(a.t))} ${a.conflict?'<span class="pill bad">Trùng lịch</span>':''}</div></td><td>${posTag(a.pos)}</td><td>${a.xe?plateTag(a.xe)+(a.xeConflict?' <span class="pill bad">Trùng xe</span>':''):'<span class="muted">—</span>'}</td><td>${esc(a.course)}</td><td class="num">${fmt(a.s)} → ${fmt(a.e)}<div class="sub">${a.e-a.s+1} ngày</div></td><td class="sub">${esc(a.note)}</td>
     <td><div class="row-acts"><button class="btn small" data-act="edit">Sửa</button><button class="btn small danger" data-act="del">Xoá</button></div></td></tr>`).join('');
 }
 $('#asgBody').addEventListener('click',async e=>{
@@ -671,7 +763,7 @@ $('#pasteCheck').addEventListener('click',()=>{
   const sep=lines[0].includes('\t')?'\t':(lines[0].includes(';')?';':',');
   const head=lines[0].split(sep).map(norm); const hasHead=head.some(h=>/giao vien|ho ten|khoa|vi tri/.test(h));
   const idx=(keys,fb)=>{ if(!hasHead) return fb; const i=head.findIndex(h=>keys.some(k=>h.includes(k))); return i>=0?i:fb; };
-  const iN=idx(['giao vien','ho ten','ten','ma gv'],0), iP=idx(['vi tri','cong viec'],1), iK=idx(['khoa'],2), iS=idx(['bat dau','tu ngay'],3), iE=idx(['ket thuc','den ngay'],4), iG=idx(['ghi chu'],5);
+  const iN=idx(['giao vien','ho ten','ten','ma gv'],0), iP=idx(['vi tri','cong viec'],1), iK=idx(['khoa'],2), iS=idx(['bat dau','tu ngay'],3), iE=idx(['ket thuc','den ngay'],4), iG=idx(['ghi chu'],6), iX=idx(['xe','bien so'],5);
   (hasHead?lines.slice(1):lines).forEach((l,i)=>{
     const c=l.split(sep).map(x=>x.trim()); const ln=i+(hasHead?2:1);
     const who=c[iN]||''; const t=DATA.byMa[norm(who)]||DATA.byName[norm(who)];
@@ -680,7 +772,9 @@ $('#pasteCheck').addEventListener('click',()=>{
     if(!c[iK]) return errs.push(`Dòng ${ln}: thiếu tên khoá`);
     if(s==null||e==null) return errs.push(`Dòng ${ln}: ngày không đọc được`);
     const p=DATA.positions.find(x=>norm(x)===norm(c[iP]))||c[iP]||t.pos[0];
-    pasteRows.push({ma:t.ma,name:t.name,pos:p,course:c[iK],s:iso(Math.min(s,e)),e:iso(Math.max(s,e)),note:c[iG]||''});
+    const xeIn=(c[iX]||'').trim(); const xeObj=xeIn?DATA.xeByKey[plateKey(xeIn)]:null;
+    if(xeIn&&!xeObj) return errs.push(`Dòng ${ln}: không có xe "${esc(xeIn)}" trong danh sách xe`);
+    pasteRows.push({ma:t.ma,name:t.name,pos:p,course:c[iK],s:iso(Math.min(s,e)),e:iso(Math.max(s,e)),note:c[iG]||'',xe:xeObj?xeObj.plate:''});
   });
   $('#pasteResult').innerHTML=`<div class="banner ${errs.length?'warn':'info'}"><b>${pasteRows.length} dòng hợp lệ${errs.length?`, ${errs.length} dòng lỗi`:''}.</b>${errs.length?`<div>${errs.slice(0,15).join('<br>')}${errs.length>15?'<br>…':''}</div>`:''}</div>`;
   $('#pasteSave').disabled=!pasteRows.length;
@@ -689,6 +783,76 @@ $('#pasteSave').addEventListener('click',async()=>{
   if(!pasteRows.length||!await ensureAdmin()) return;
   try{ await apiPost({action:'add',rows:pasteRows}); toast(`Đã lưu ${pasteRows.length} phân công.`); pasteRows=[]; $('#pasteText').value=''; $('#pasteResult').innerHTML=''; $('#pasteSave').disabled=true; await refresh(); }
   catch(err){ toast(err.message,true); }
+});
+
+// ---------- xe ----------
+function xeStatus(x,D){
+  const list=DATA.byXe[x.key]||[];
+  const active=list.filter(a=>a.s<=D&&a.e>=D);
+  const future=list.filter(a=>a.s>D).sort((a,b)=>a.s-b.s);
+  const conflict=list.some(a=>a.xeConflict&&a.e>=D);
+  if(active.length){ let end=Math.max(...active.map(a=>a.e)), moved=true;
+    while(moved){ moved=false; for(const a of list){ if(a.s<=end+1&&a.e>end){ end=a.e; moved=true; } } }
+    return {kind:(end-D)<SOON_DAYS?'soon':'busy',active,end,freeFrom:end+1,left:end-D,conflict,next:future.find(a=>a.s>end)}; }
+  return {kind:'free',active:[],freeFrom:D,conflict,next:future[0]};
+}
+function renderXe(D){
+  const q=norm($('#xQ').value), pos=$('#xPos').value, hang=$('#xHang').value, fs=$('#xStatus').value, own=$('#xOwner').value;
+  const rows=DATA.xes.map(x=>({x,st:xeStatus(x,D)}));
+  const cnt={free:0,soon:0,busy:0}; rows.forEach(r=>cnt[r.st.kind]++);
+  const nc=rows.filter(r=>r.x.center).length;
+  const byHang=DATA.hangs.map(h=>{ const all=rows.filter(r=>r.x.hang===h); return `<span>Hạng ${esc(h)}: <b>${all.length}</b> <span class="muted">(trống ${all.filter(r=>r.st.kind==='free').length})</span></span>`; }).join('');
+  $('#xeSummary').innerHTML=`<span>Tổng xe: <b>${rows.length}</b></span><span>Trung tâm: <b>${nc}</b></span><span>Liên kết / cá nhân: <b>${rows.length-nc}</b></span><span>Đang dùng: <b>${cnt.busy+cnt.soon}</b></span><span>Trống: <b style="color:var(--free)">${cnt.free}</b></span><span style="flex-basis:100%;height:0"></span>${byHang}`;
+  let list=rows.filter(({x,st})=>{
+    if(pos&&!x.pos.includes(pos)) return false;
+    if(hang&&x.hang!==hang) return false;
+    if(own==='center'&&!x.center) return false; if(own==='other'&&x.center) return false;
+    if(fs==='conflict'){ if(!st.conflict) return false; } else if(fs&&st.kind!==fs) return false;
+    if(q){ const hay=norm(x.plate+' '+x.key+' '+x.hang+' '+x.owner+' '+(DATA.byXe[x.key]||[]).map(a=>a.t.name+' '+a.course).join(' ')); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>a.x.stt-b.x.stt);
+  if(!list.length){ $('#xeBody').innerHTML=`<tr><td colspan="10" class="empty">${DATA.xes.length?'Không có xe nào khớp bộ lọc.':'Chưa có xe. Bấm "+ Thêm xe" hoặc dán danh sách vào sheet XE.'}</td></tr>`; return; }
+  $('#xeBody').innerHTML=list.map(({x,st})=>{
+    const label={free:'Trống',soon:'Sắp trống',busy:'Đang dùng'}[st.kind];
+    let pills=`<span class="pill ${st.kind}">${label}</span>`; if(st.conflict) pills+=' <span class="pill bad">Trùng xe</span>';
+    const using=st.active.length?st.active.map(a=>`<div><span class="name">${esc(a.t.name)}</span></div><div class="sub">${esc(a.course)} · ${esc(a.pos)} · đến ${fmt(a.e)}</div>`).join(''):'<span class="muted">—</span>';
+    const free=st.kind==='free'?'<b style="color:var(--free)">Ngay bây giờ</b>':`<span class="num">${fmt(st.freeFrom)}</span><div class="sub">còn ${st.left} ngày</div>`;
+    const nxt=st.next?`<div>${esc(st.next.t.name)}</div><div class="sub num">${esc(st.next.course)} · từ ${fmt(st.next.s)}</div>`:'<span class="muted">Chưa có</span>';
+    return `<tr><td class="stt">${x.stt}</td><td>${plateTag(x.plate)}</td><td>${esc(x.hang)||'<span class="muted">—</span>'}</td><td>${x.center?'Trung tâm':esc(x.owner)}</td><td class="nw">${x.noPos?'<span class="muted">Chưa xếp</span>':x.allPos?'Tất cả':x.pos.map(posTag).join('<br>')}</td><td>${pills}</td><td>${using}</td><td class="nw">${free}</td><td>${nxt}</td><td><button class="btn small" data-xedit="${esc(x.key)}">Sửa</button></td></tr>`;
+  }).join('');
+}
+['#xQ','#xPos','#xHang','#xStatus','#xOwner'].forEach(s=>$(s).addEventListener('input',render));
+let xeEditing=null;
+function openXe(x){
+  xeEditing=x||null;
+  $('#xeTitle').textContent = x ? `Sửa xe · STT ${x.stt}` : 'Thêm xe';
+  $('#xePlate').value = x ? x.plate : ''; $('#xeHang').value = x ? x.hang : '';
+  $('#xeOwnType').value = x && !x.center ? 'other' : 'Trung tâm'; $('#xeOwner').value = x && !x.center ? x.owner : '';
+  $('#xeOwnerF').hidden = $('#xeOwnType').value!=='other';
+  const owners=[...new Set(DATA.xes.filter(v=>!v.center).map(v=>v.owner).concat(DATA.teachers.filter(t=>t.type==='Liên kết').map(t=>t.name.split('_')[0].replace(/\s+\d+\s*$/,'').trim())))];
+  $('#ownerList').innerHTML=owners.map(o=>`<option value="${esc(o)}">`).join('');
+  $('#xePos').innerHTML = DEFAULT_POS.map((p,i)=>`<label><input type="checkbox" id="xep${i}" value="${esc(p)}" ${x&&!x.noPos&&x.pos.includes(p)?'checked':''}>${esc(p)}</label>`).join('');
+  $('#xeErr').textContent=''; $('#xeModal').hidden=false; setTimeout(()=>$('#xePlate').focus(),30);
+}
+$('#addXe').addEventListener('click',()=>openXe(null));
+$('#xeOwnType').addEventListener('change',()=>{ $('#xeOwnerF').hidden = $('#xeOwnType').value!=='other'; });
+$('#xeCancel').addEventListener('click',()=>{ $('#xeModal').hidden=true; });
+$('#xeBody').addEventListener('click',e=>{ const b=e.target.closest('[data-xedit]'); if(!b) return; const x=DATA.xeByKey[b.dataset.xedit]; if(x) openXe(x); });
+$('#xeForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const plate=$('#xePlate').value.trim().toUpperCase().replace(/\s+/g,''), hang=$('#xeHang').value.trim().toUpperCase();
+  const pos=$$('#xePos input:checked').map(x=>x.value);
+  if(!plate) return $('#xeErr').textContent='Nhập biển số.';
+  const owner = $('#xeOwnType').value==='other' ? $('#xeOwner').value.trim() : 'Trung tâm';
+  if(!owner) return $('#xeErr').textContent='Nhập tên chủ xe.';
+  const dup=DATA.xes.find(x=>x.key===plateKey(plate)&&x!==xeEditing);
+  if(dup) return $('#xeErr').textContent=`Biển số này đã có (STT ${dup.stt}).`;
+  if(!await ensureAdmin()) return;
+  const xe={plate,hang,owner,pos: !pos.length?'':pos.length===DEFAULT_POS.length?'Tất cả':pos.join(', ')};
+  if(xeEditing){ xe.oldPlate=xeEditing.plate; xe.row=xeEditing.row; }
+  try{ $('#xeSave').disabled=true; await apiPost({action:xeEditing?'updateXe':'addXe',xe}); $('#xeModal').hidden=true; toast(xeEditing?'Đã lưu thông tin xe.':'Đã thêm xe.'); await refresh(); }
+  catch(err){ $('#xeErr').textContent=err.message; }
+  finally{ $('#xeSave').disabled=false; }
 });
 
 // ---------- giáo viên: thêm / sửa ----------
@@ -748,7 +912,7 @@ $('#loginCancel').addEventListener('click',()=>{ $('#loginModal').hidden=true; l
 
 // ---------- chung ----------
 function toast(msg,err){ const t=document.createElement('div'); t.className='toast'+(err?' err':''); t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3200); }
-function showView(v){ $$('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v)); ['staff','gantt','course','assign'].forEach(k=>$('#view-'+k).hidden=k!==v); }
+function showView(v){ $$('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v)); ['staff','gantt','course','xe','assign'].forEach(k=>$('#view-'+k).hidden=k!==v); }
 $$('.tab').forEach(t=>t.addEventListener('click',()=>showView(t.dataset.view)));
 $('#stats').addEventListener('click',e=>{
   const b=e.target.closest('.stat'); if(!b) return; const f=b.dataset.f;
@@ -756,10 +920,10 @@ $('#stats').addEventListener('click',e=>{
 });
 ['#q','#fPos','#fType','#fStatus','#gPos','#gType','#cFilter','#lQ','#lPos','#lShow'].forEach(s=>$(s).addEventListener('input',()=>{ if(s==='#fStatus') statFilter=$(s).value; render(); }));
 async function refresh(){
-  try{ const j=await apiLoad(); if(!DEMO) RAW={teachers:j.teachers||[],assignments:j.assignments||[]}; else if(!RAW.teachers.length) RAW=j; build(); render(); }
+  try{ const j=await apiLoad(); if(!DEMO) RAW={teachers:j.teachers||[],assignments:j.assignments||[],xe:j.xe||[]}; else if(!RAW.teachers.length) RAW=j; build(); render(); }
   catch(err){ toast('Không tải được dữ liệu: '+err.message,true); }
 }
-$('#reload').addEventListener('click',()=>{ if(DEMO){ RAW={teachers:[],assignments:[]}; } refresh(); });
+$('#reload').addEventListener('click',()=>{ if(DEMO){ RAW={teachers:[],assignments:[],xe:[]}; } refresh(); });
 
 $('#fStart').value=iso(todayNum()); $('#fEnd').value=iso(todayNum()+30);
 $('#demoTag').hidden=!DEMO; setAdmin();

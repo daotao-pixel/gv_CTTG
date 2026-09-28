@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Phân công giáo viên CTTG</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -74,12 +75,16 @@ textarea{width:100%;min-height:130px;background:var(--surface);border:1px solid 
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-weight:600;font-size:12.5px}
 
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:12px}
+.statgroup{display:flex;flex-direction:column;gap:6px;min-width:0}
+.statgroup .lbl{padding-left:2px}
+.statrow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+@media (max-width:560px){.statrow{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px}
 .stat:hover{border-color:var(--ink-3)}
 .stat[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.stat .v{font-family:Lexend,sans-serif;font-size:28px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
-.stat .k{font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.stat .v{font-family:Lexend,sans-serif;font-size:20px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .k{font-size:11.5px;color:var(--ink-2);display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat .d{font-size:12px;color:var(--ink-3)}
 .dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
 .stat.free .v{color:var(--free)} .stat.soon .v{color:var(--soon)} .stat.busy .v{color:var(--busy)} .stat.bad .v{color:var(--bad)}
@@ -94,7 +99,8 @@ textarea{width:100%;min-height:130px;background:var(--surface);border:1px solid 
 table{border-collapse:collapse;width:100%}
 .staff-table{min-width:1020px} .xe-table{min-width:1100px}
 .plate{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.02em;background:var(--accent-soft);color:var(--accent-strong);border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap;font-size:12.5px}
-.pick select{margin-top:6px;width:100%;max-width:340px;min-height:32px;padding:4px 8px;font-size:13px}
+.pick select{width:100%;min-height:32px;padding:4px 8px;font-size:12.5px}
+.pick:not(.sel) select{color:var(--ink-3)}
 .pick .xe-lbl{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:6px} .asg-table{min-width:820px}
 th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);background:var(--surface-2)}
@@ -161,7 +167,10 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
 .two input{width:100%}
 .left .field input,.left .field select{width:100%}
 .picker{border:1px solid var(--line);border-radius:10px;max-height:460px;overflow:auto}
-.pick{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.pick{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,260px) auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.pick-head{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,260px) auto;gap:10px;padding:6px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);position:sticky;top:0;z-index:1}
+.pick-head span:first-child{width:18px}
+@media (max-width:640px){.pick,.pick-head{grid-template-columns:auto minmax(0,1fr) auto}.pick select{grid-column:2/4;grid-row:2}.pick-head span:nth-child(3){display:none}}
 .pick:last-child{border-bottom:0}
 .pick:hover{background:var(--surface-2)}
 .pick input{width:18px;height:18px;accent-color:var(--accent)}
@@ -557,13 +566,24 @@ function renderStats(rows,soon){
   const c={all:rows.length,free:0,soon:0,busy:0,conflict:0};
   rows.forEach(r=>{c[r.st.kind]++; if(r.st.conflict) c.conflict++;});
   const items=[
-    ['','Tổng giáo viên',c.all,'','var(--ink-3)'],
+    ['','Tổng',c.all,'','var(--ink-3)'],
     ['free','Đang trống',c.free,'free','var(--free)'],
-    ['soon',`Sắp trống (< ${soon} ngày)`,c.soon,'soon','var(--soon)'],
+    ['soon','Sắp trống',c.soon,'soon','var(--soon)'],
     ['busy','Đang dạy',c.busy,'busy','var(--busy)'],
     ['conflict','Trùng lịch',c.conflict,c.conflict?'bad':'','var(--bad)']
   ];
-  $('#stats').innerHTML=items.map(([f,k,v,cls,col])=>`<button class="stat ${cls}" data-f="${f}" aria-pressed="${statFilter===f&&f!==''}"><span class="v">${v}</span><span class="k"><i class="dot" style="background:${col}"></i>${k}</span></button>`).join('');
+  const tile=(g,[f,k,v,cls,col],pressed)=>`<button class="stat ${cls}" data-g="${g}" data-f="${f}" aria-pressed="${pressed}" title="${k}"><span class="v">${v}</span><span class="k"><i class="dot" style="background:${col}"></i>${k}</span></button>`;
+  const D=D_(), xr=DATA.xes.map(x=>xeStatus(x,D)); const xc={free:0,soon:0,busy:0,conflict:0};
+  xr.forEach(st=>{ xc[st.kind]++; if(st.conflict) xc.conflict++; });
+  const xItems=[
+    ['','Tổng',xr.length,'','var(--ink-3)'],
+    ['free','Đang trống',xc.free,'free','var(--free)'],
+    ['soon','Sắp trống',xc.soon,'soon','var(--soon)'],
+    ['busy','Đang dùng',xc.busy,'busy','var(--busy)'],
+    ['conflict','Trùng xe',xc.conflict,xc.conflict?'bad':'','var(--bad)']
+  ];
+  $('#stats').innerHTML=`<div class="statgroup"><span class="lbl">Giáo viên · sắp trống = còn dưới ${soon} ngày</span><div class="statrow">${items.map(it=>tile('gv',it,statFilter===it[0]&&it[0]!=='')).join('')}</div></div>
+    <div class="statgroup"><span class="lbl">Xe</span><div class="statrow">${xItems.map(it=>tile('xe',it,$('#xStatus').value===it[0]&&it[0]!=='')).join('')}</div></div>`;
   const byPos=DATA.positions.map(p=>{ const n=rows.filter(r=>r.st.kind==='free'&&r.t.pos.includes(p)).length; return `<span>${posTag(p)} trống <b>${n}</b></span>`; });
   $('#freeline').innerHTML='<span class="lbl" style="align-self:center">Đang trống theo vị trí</span>'+byPos.join('');
   const types=['Trung tâm','Liên kết'].concat(DATA.types.filter(x=>x!=='Trung tâm'&&x!=='Liên kết'));
@@ -664,24 +684,30 @@ function renderPicker(){
     const st = !r ? '<span class="pill neutral">Chọn ngày để xem</span>' : ov.length ? `<span class="pill bad" title="${ov.map(a=>esc(a.course)+' '+fmt(a.s)+'→'+fmt(a.e)).join('; ')}">Bận ${esc(ov[0].course)} đến ${fmtShort(Math.max(...ov.map(a=>a.e)))}</span>` : '<span class="pill free">Trống</span>';
     const on=selected.has(t.key);
     let xeSel='';
-    if(on){
-      if(!selXe.has(t.key)) selXe.set(t.key, suggestXe(t,pos,r));
-      const cur=selXe.get(t.key);
+    {
+      if(on&&!selXe.has(t.key)) selXe.set(t.key, suggestXe(t,pos,r));
+      const cur=on?selXe.get(t.key):'';
       const opts=DATA.xes.filter(x=>x.allPos||x.pos.includes(pos)||plateKey(cur)===x.key).sort((a,b)=>(ownsXe(t,b)-ownsXe(t,a))||(t.type==='Liên kết'?0:(b.center-a.center))||a.stt-b.stt).map(x=>{
         const b=r?xeBusy(x,r):[]; const used=[...selected].some(k=>k!==t.key&&plateKey(selXe.get(k))===x.key);
         const tag=b.length?` · bận (${b[0].t.name.split(' ').slice(-1)[0]}) đến ${fmtShort(Math.max(...b.map(a=>a.e)))}`:used?' · đang chọn cho GV khác':' · trống';
         return `<option value="${esc(x.plate)}" ${plateKey(cur)===x.key?'selected':''}>${esc(x.plate)}${x.hang?' · '+esc(x.hang):''}${ownsXe(t,x)?' · xe của GV':(!x.center?' · xe '+esc(x.owner):'')}${tag}</option>`;
       }).join('');
-      xeSel=`<span class="xe-lbl">Xe</span><select data-xe="${esc(t.key)}" aria-label="Xe cho ${esc(t.name)}"><option value="">— Chưa chọn xe —</option>${opts}</select>`;
+      xeSel=`<select data-xe="${esc(t.key)}" aria-label="Xe cho ${esc(t.name)}"><option value="">${on?'— Chưa chọn xe —':'Chọn xe…'}</option>${opts}</select>`;
     }
-    return `<label class="pick ${on?'sel':''}"><input type="checkbox" data-k="${esc(t.key)}" ${on?'checked':''}><span><b>${esc(t.name)}</b><span class="sub">${esc(t.ma)}${t.ma?' · ':''}${esc(typeLabel(t))} · ${esc(posLabel(t))}</span>${xeSel}</span>${st}</label>`;
+    return `<div class="pick ${on?'sel':''}" data-row="${esc(t.key)}"><input type="checkbox" data-k="${esc(t.key)}" ${on?'checked':''} aria-label="Chọn ${esc(t.name)}"><span><b>${esc(t.name)}</b><span class="sub">${esc(t.ma)}${t.ma?' · ':''}${esc(typeLabel(t))} · ${esc(posLabel(t))}</span></span>${xeSel}${st}</div>`;
   }).join('');
+  if(info.length) $('#picker').insertAdjacentHTML('afterbegin','<div class="pick-head"><span></span><span>Giáo viên</span><span>Xe</span><span>Lịch</span></div>');
   $('#pickCount').textContent = selected.size ? `Đã chọn ${selected.size} giáo viên` : 'Chưa chọn ai';
   $('#saveBtn').textContent = editing ? 'Lưu thay đổi' : `Lưu phân công${selected.size?` (${selected.size})`:''}`;
   confirmPending=false; $('#conflictBox').hidden=true;
 }
+$('#picker').addEventListener('click',e=>{
+  if(e.target.closest('select,input')) return;
+  const row=e.target.closest('[data-row]'); if(!row) return;
+  const cb=row.querySelector('input[type=checkbox]'); cb.checked=!cb.checked; cb.dispatchEvent(new Event('change',{bubbles:true}));
+});
 $('#picker').addEventListener('change',e=>{
-  if(e.target.dataset.xe){ selXe.set(e.target.dataset.xe,e.target.value); renderPicker(); return; }
+  if(e.target.dataset.xe){ const k=e.target.dataset.xe; if(!selected.has(k)){ if(editing){ selected.clear(); selXe.clear(); } selected.add(k); } selXe.set(k,e.target.value); renderPicker(); return; }
   const k=e.target.dataset.k; if(!k) return;
   if(e.target.checked){ if(editing){ selected.clear(); selXe.clear(); } selected.add(k); } else { selected.delete(k); selXe.delete(k); }
   renderPicker();
@@ -916,6 +942,7 @@ function showView(v){ $$('.tab').forEach(t=>t.setAttribute('aria-selected',t.dat
 $$('.tab').forEach(t=>t.addEventListener('click',()=>showView(t.dataset.view)));
 $('#stats').addEventListener('click',e=>{
   const b=e.target.closest('.stat'); if(!b) return; const f=b.dataset.f;
+  if(b.dataset.g==='xe'){ const el=$('#xStatus'); el.value = el.value===f ? '' : f; showView('xe'); render(); return; }
   statFilter = statFilter===f ? '' : f; $('#fStatus').value=statFilter; showView('staff'); render();
 });
 ['#q','#fPos','#fType','#fStatus','#gPos','#gType','#cFilter','#lQ','#lPos','#lShow'].forEach(s=>$(s).addEventListener('input',()=>{ if(s==='#fStatus') statFilter=$(s).value; render(); }));

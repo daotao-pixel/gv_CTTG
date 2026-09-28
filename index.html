@@ -100,11 +100,29 @@ table{border-collapse:collapse;width:100%}
 .staff-table{min-width:1020px} .xe-table{min-width:1100px}
 .xebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;position:sticky;top:8px;z-index:5}
 .xebar .warn{color:var(--bad);font-weight:500;flex-basis:100%}
-.asg-xe{min-width:190px;max-width:230px;min-height:30px;padding:3px 6px;font-size:12.5px}
+.asg-xe{width:200px}
 .asg-xe.dirty{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);font-weight:600}
 .plate{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.02em;background:var(--accent-soft);color:var(--accent-strong);border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap;font-size:12.5px}
-.pick select{width:100%;min-height:32px;padding:4px 8px;font-size:12.5px}
-.pick:not(.sel) select{color:var(--ink-3)}
+.xebtn{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-height:32px;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;font-size:12.5px;text-align:left;color:var(--ink-3)}
+.xebtn:hover{border-color:var(--accent)}
+.xebtn.has{color:var(--ink)}
+.xebtn.dirty{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.xebtn .caret{color:var(--ink-3);font-size:11px}
+.xebtn .meta{color:var(--ink-3);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .st{justify-self:end}
+#xpModal .box{max-width:640px;gap:10px}
+.xp-ctx{font-size:13px;color:var(--ink-2)}
+.xp-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.xp-tools .field input[type=search]{width:170px}
+.xp-list{border:1px solid var(--line);border-radius:10px;max-height:min(420px,55vh);overflow:auto}
+.xp-row{display:grid;grid-template-columns:118px 52px minmax(0,1fr) 150px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer;width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;font-size:13px}
+.xp-row:last-child{border-bottom:0}
+.xp-row:hover{background:var(--surface-2)}
+.xp-row.cur{background:var(--accent-soft)}
+.xp-row .own{font-size:11.5px;color:var(--ink-3)}
+.xp-row .pill{justify-self:end}
+.xp-count{font-size:12px;color:var(--ink-3)}
+@media (max-width:560px){.xp-row{grid-template-columns:110px 44px minmax(0,1fr)}.xp-row .pill{grid-column:1/-1;justify-self:start}}
 .pick .xe-lbl{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:6px} .asg-table{min-width:960px}
 th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);background:var(--surface-2)}
@@ -171,10 +189,11 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
 .two input{width:100%}
 .left .field input,.left .field select{width:100%}
 .picker{border:1px solid var(--line);border-radius:10px;max-height:460px;overflow:auto}
-.pick{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,260px) auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer}
-.pick-head{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,260px) auto;gap:10px;padding:6px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);position:sticky;top:0;z-index:1}
+.pick{display:grid;grid-template-columns:auto minmax(0,1fr) 210px 170px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.pick-head{display:grid;grid-template-columns:auto minmax(0,1fr) 210px 170px;gap:10px;padding:6px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);position:sticky;top:0;z-index:1}
 .pick-head span:first-child{width:18px}
-@media (max-width:640px){.pick,.pick-head{grid-template-columns:auto minmax(0,1fr) auto}.pick select{grid-column:2/4;grid-row:2}.pick-head span:nth-child(3){display:none}}
+.pick-head span:last-child{text-align:right}
+@media (max-width:640px){.pick,.pick-head{grid-template-columns:auto minmax(0,1fr) auto}.pick .xebtn{grid-column:2/4;grid-row:2}.pick-head span:nth-child(3){display:none}}
 .pick:last-child{border-bottom:0}
 .pick:hover{background:var(--surface-2)}
 .pick input{width:18px;height:18px;accent-color:var(--accent)}
@@ -372,6 +391,22 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
     <span class="note" id="xeErr" style="color:var(--bad)"></span>
     <div class="row-acts"><button class="btn primary" type="submit" id="xeSave">Lưu</button><button class="btn" type="button" id="xeCancel">Huỷ</button></div>
   </form>
+</div>
+
+<div class="modal" id="xpModal" hidden>
+  <div class="box" role="dialog" aria-labelledby="xpTitle">
+    <h3 id="xpTitle">Chọn xe</h3>
+    <div class="xp-ctx" id="xpCtx"></div>
+    <div class="xp-tools">
+      <div class="field"><label for="xpQ">Tìm biển số</label><input type="search" id="xpQ" placeholder="VD: 235.12 hoặc 23512"></div>
+      <div class="field"><label for="xpHang">Hạng</label><select id="xpHang"></select></div>
+      <div class="field"><label for="xpPos">Vị trí</label><select id="xpPos"><option value="same">Đúng vị trí</option><option value="all">Tất cả xe</option></select></div>
+      <div class="field"><label for="xpFree">Tình trạng</label><select id="xpFree"><option value="free">Chỉ xe trống</option><option value="all">Tất cả</option></select></div>
+    </div>
+    <span class="xp-count" id="xpCount"></span>
+    <div class="xp-list" id="xpList"></div>
+    <div class="row-acts"><button class="btn" type="button" id="xpNone">Bỏ chọn xe</button><button class="btn" type="button" id="xpClose">Đóng</button></div>
+  </div>
 </div>
 
 <div class="modal" id="loginModal" hidden>
@@ -693,14 +728,9 @@ function renderPicker(){
     {
       if(on&&!selXe.has(t.key)) selXe.set(t.key, suggestXe(t,pos,r));
       const cur=on?selXe.get(t.key):'';
-      const opts=DATA.xes.filter(x=>x.allPos||x.pos.includes(pos)||plateKey(cur)===x.key).sort((a,b)=>(ownsXe(t,b)-ownsXe(t,a))||(t.type==='Liên kết'?0:(b.center-a.center))||a.stt-b.stt).map(x=>{
-        const b=r?xeBusy(x,r):[]; const used=[...selected].some(k=>k!==t.key&&plateKey(selXe.get(k))===x.key);
-        const tag=b.length?` · bận (${b[0].t.name.split(' ').slice(-1)[0]}) đến ${fmtShort(Math.max(...b.map(a=>a.e)))}`:used?' · đang chọn cho GV khác':' · trống';
-        return `<option value="${esc(x.plate)}" ${plateKey(cur)===x.key?'selected':''}>${esc(x.plate)}${x.hang?' · '+esc(x.hang):''}${ownsXe(t,x)?' · xe của GV':(!x.center?' · xe '+esc(x.owner):'')}${tag}</option>`;
-      }).join('');
-      xeSel=`<select data-xe="${esc(t.key)}" aria-label="Xe cho ${esc(t.name)}"><option value="">${on?'— Chưa chọn xe —':'Chọn xe…'}</option>${opts}</select>`;
+      xeSel=xeBtn(cur,`data-xebtn="${esc(t.key)}"`,`Xe cho ${t.name}`,false);
     }
-    return `<div class="pick ${on?'sel':''}" data-row="${esc(t.key)}"><input type="checkbox" data-k="${esc(t.key)}" ${on?'checked':''} aria-label="Chọn ${esc(t.name)}"><span><b>${esc(t.name)}</b><span class="sub">${esc(t.ma)}${t.ma?' · ':''}${esc(typeLabel(t))} · ${esc(posLabel(t))}</span></span>${xeSel}${st}</div>`;
+    return `<div class="pick ${on?'sel':''}" data-row="${esc(t.key)}"><input type="checkbox" data-k="${esc(t.key)}" ${on?'checked':''} aria-label="Chọn ${esc(t.name)}"><span><b>${esc(t.name)}</b><span class="sub">${esc(t.ma)}${t.ma?' · ':''}${esc(typeLabel(t))} · ${esc(posLabel(t))}</span></span>${xeSel}<span class="st">${st}</span></div>`;
   }).join('');
   if(info.length) $('#picker').insertAdjacentHTML('afterbegin','<div class="pick-head"><span></span><span>Giáo viên</span><span>Xe</span><span>Lịch</span></div>');
   $('#pickCount').textContent = selected.size ? `Đã chọn ${selected.size} giáo viên` : 'Chưa chọn ai';
@@ -708,6 +738,12 @@ function renderPicker(){
   confirmPending=false; $('#conflictBox').hidden=true;
 }
 $('#picker').addEventListener('click',e=>{
+  const xb=e.target.closest('[data-xebtn]');
+  if(xb){ const k=xb.dataset.xebtn, t=DATA.teachers.find(z=>z.key===k), r=rangeOf(), pos=$('#fAsgPos').value;
+    openXp({title:`Chọn xe cho ${t.name}`, t, pos, r, cur:selected.has(k)?selXe.get(k):'', exclude:editing?editing.id:null,
+      taken:new Map([...selected].filter(o=>o!==k&&selXe.get(o)).map(o=>[plateKey(selXe.get(o)),DATA.teachers.find(z=>z.key===o).name])),
+      onPick:plate=>{ if(!selected.has(k)){ if(editing){ selected.clear(); selXe.clear(); } selected.add(k); } selXe.set(k,plate); renderPicker(); } });
+    return; }
   if(e.target.closest('select,input')) return;
   const row=e.target.closest('[data-row]'); if(!row) return;
   const cb=row.querySelector('input[type=checkbox]'); cb.checked=!cb.checked; cb.dispatchEvent(new Event('change',{bubbles:true}));
@@ -766,6 +802,51 @@ function stopEdit(){ editing=null; $('#editBanner').hidden=true; $('#cancelEdit'
 $('#cancelEdit').addEventListener('click',()=>{ selected.clear(); selXe.clear(); stopEdit(); });
 
 let pendXe=new Map(), xeConfirm=false;
+function xeBtn(cur,attr,label,dirty){
+  const x=cur?DATA.xeByKey[plateKey(cur)]:null;
+  return `<button type="button" class="xebtn ${cur?'has':''} ${dirty?'dirty':''}" ${attr} aria-label="${esc(label)}">${cur?`<span>${plateTag(cur)} <span class="meta">${x&&x.hang?esc(x.hang):''}</span></span>`:'<span>Chọn xe…</span>'}<span class="caret">▾</span></button>`;
+}
+let XP=null;
+function openXp(ctx){
+  XP=ctx;
+  $('#xpTitle').textContent=ctx.title;
+  $('#xpCtx').textContent = ctx.sub || `${ctx.pos}${ctx.r?` · ${fmt(ctx.r.s)} → ${fmt(ctx.r.e)}`:''}`;
+  $('#xpQ').value=''; $('#xpPos').value='same'; $('#xpFree').value='free';
+  $('#xpHang').innerHTML='<option value="">Tất cả</option>'+DATA.hangs.map(h=>`<option>${esc(h)}</option>`).join('');
+  $('#xpNone').hidden=!ctx.cur;
+  $('#xpModal').hidden=false; renderXp(); setTimeout(()=>$('#xpQ').focus(),30);
+}
+function renderXp(){
+  if(!XP) return;
+  const q=plateKey($('#xpQ').value), qn=norm($('#xpQ').value), hang=$('#xpHang').value, allPos=$('#xpPos').value==='all', onlyFree=$('#xpFree').value==='free';
+  const t=XP.t, r=XP.r;
+  let rows=DATA.xes.map(x=>{
+    const busy=r?(DATA.byXe[x.key]||[]).filter(a=>a.s<=r.e&&a.e>=r.s&&(XP.exclude==null||String(a.id)!==String(XP.exclude))):[];
+    return {x,busy,taken:XP.taken&&XP.taken.get(x.key),own:t?ownsXe(t,x):false,cur:plateKey(XP.cur)===x.key};
+  }).filter(o=>{
+    if(!allPos&&!(o.x.allPos||o.x.pos.includes(XP.pos))&&!o.cur) return false;
+    if(hang&&o.x.hang!==hang) return false;
+    if(onlyFree&&(o.busy.length||o.taken)&&!o.cur) return false;
+    if(q&&!o.x.key.includes(q)&&!norm(o.x.owner).includes(qn)) return false;
+    return true;
+  });
+  rows.sort((a,b)=>(b.cur-a.cur)||(b.own-a.own)||((a.busy.length||a.taken?1:0)-(b.busy.length||b.taken?1:0))||(t&&t.type==='Liên kết'?0:(b.x.center-a.x.center))||a.x.stt-b.x.stt);
+  $('#xpCount').textContent=`${rows.length} xe${onlyFree?' trống':''}`;
+  $('#xpList').innerHTML = rows.length ? rows.map(o=>{
+    const st = o.busy.length ? `<span class="pill bad" title="${o.busy.map(a=>esc(a.t.name)+' – '+esc(a.course)).join('; ')}">Bận đến ${fmtShort(Math.max(...o.busy.map(a=>a.e)))}</span>`
+      : o.taken ? `<span class="pill soon">Đang chọn cho ${esc(o.taken.split(' ').slice(-1)[0])}</span>` : '<span class="pill free">Trống</span>';
+    const own = o.own ? '<b>Xe của GV</b>' : o.x.center ? 'Trung tâm' : esc(o.x.owner);
+    const busyWho = o.busy.length ? `<div class="own">${esc(o.busy[0].t.name)}</div>` : '';
+    return `<button type="button" class="xp-row ${o.cur?'cur':''}" data-plate="${esc(o.x.plate)}">${plateTag(o.x.plate)}<span>${esc(o.x.hang)}</span><span><span class="own">${own}${o.x.noPos?' · chưa xếp vị trí':''}</span>${busyWho}</span>${st}</button>`;
+  }).join('') : `<div class="empty">Không có xe phù hợp.${onlyFree?' Thử chọn Tình trạng: Tất cả.':''}</div>`;
+}
+['#xpQ','#xpHang','#xpPos','#xpFree'].forEach(s=>$(s).addEventListener('input',renderXp));
+$('#xpList').addEventListener('click',e=>{ const b=e.target.closest('[data-plate]'); if(!b||!XP) return; const f=XP.onPick; $('#xpModal').hidden=true; XP=null; f(b.dataset.plate); });
+$('#xpNone').addEventListener('click',()=>{ if(!XP) return; const f=XP.onPick; $('#xpModal').hidden=true; XP=null; f(''); });
+$('#xpClose').addEventListener('click',()=>{ $('#xpModal').hidden=true; XP=null; });
+$('#xpModal').addEventListener('click',e=>{ if(e.target.id==='xpModal'){ $('#xpModal').hidden=true; XP=null; } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('#xpModal').hidden){ $('#xpModal').hidden=true; XP=null; } });
+$('#xpQ').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const b=$('#xpList [data-plate]'); if(b) b.click(); } });
 function xeOptionsFor(a,cur){
   const r={s:a.s,e:a.e};
   return DATA.xes.filter(x=>x.allPos||x.pos.includes(a.pos)||plateKey(cur)===x.key)
@@ -777,18 +858,20 @@ function xeOptionsFor(a,cur){
 }
 function xeCell(a){
   const id=String(a.id), dirty=pendXe.has(id), cur=dirty?pendXe.get(id):a.xe;
-  return `<select class="asg-xe ${dirty?'dirty':''}" data-xeid="${esc(id)}" aria-label="Xe cho ${esc(a.t.name)} – ${esc(a.course)}"><option value="">— Chưa có xe —</option>${xeOptionsFor(a,cur)}</select>`;
+  return `<div class="asg-xe">${xeBtn(cur,`data-xeid="${esc(id)}"`,`Xe cho ${a.t.name} – ${a.course}`,dirty)}</div>`;
 }
 function updateXeBar(){
   const n=pendXe.size; $('#xeBar').hidden=!n; xeConfirm=false;
   $('#xeBarText').textContent=`Đã đổi xe cho ${n} phân công`; $('#xeBarSave').textContent='Lưu xe';
   const w=$('#xeBar .warn'); if(w) w.remove();
 }
-$('#asgBody').addEventListener('change',e=>{
-  const id=e.target.dataset.xeid; if(!id) return;
-  const a=DATA.asg.find(z=>String(z.id)===id); if(!a) return;
-  if(plateKey(e.target.value)===plateKey(a.xe)) pendXe.delete(id); else pendXe.set(id,e.target.value);
-  renderAsgList(D_()); updateXeBar();
+$('#asgBody').addEventListener('click',e=>{
+  const b=e.target.closest('[data-xeid]'); if(!b) return; e.stopPropagation();
+  const id=b.dataset.xeid, a=DATA.asg.find(z=>String(z.id)===id); if(!a) return;
+  const taken=new Map();
+  pendXe.forEach((v,oid)=>{ if(oid===id||!v) return; const o=DATA.asg.find(z=>String(z.id)===oid); if(o&&o.s<=a.e&&o.e>=a.s) taken.set(plateKey(v),o.t.name); });
+  openXp({title:`Chọn xe cho ${a.t.name}`, sub:`${a.course} · ${a.pos} · ${fmt(a.s)} → ${fmt(a.e)}`, t:a.t, pos:a.pos, r:{s:a.s,e:a.e}, cur:pendXe.has(id)?pendXe.get(id):a.xe, exclude:a.id, taken,
+    onPick:plate=>{ if(plateKey(plate)===plateKey(a.xe)) pendXe.delete(id); else pendXe.set(id,plate); renderAsgList(D_()); updateXeBar(); } });
 });
 $('#xeBarCancel').addEventListener('click',()=>{ pendXe.clear(); updateXeBar(); renderAsgList(D_()); });
 $('#xeBarSave').addEventListener('click',async()=>{

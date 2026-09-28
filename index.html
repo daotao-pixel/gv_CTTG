@@ -98,10 +98,14 @@ textarea{width:100%;min-height:130px;background:var(--surface);border:1px solid 
 
 table{border-collapse:collapse;width:100%}
 .staff-table{min-width:1020px} .xe-table{min-width:1100px}
+.xebar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;position:sticky;top:8px;z-index:5}
+.xebar .warn{color:var(--bad);font-weight:500;flex-basis:100%}
+.asg-xe{min-width:190px;max-width:230px;min-height:30px;padding:3px 6px;font-size:12.5px}
+.asg-xe.dirty{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);font-weight:600}
 .plate{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.02em;background:var(--accent-soft);color:var(--accent-strong);border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap;font-size:12.5px}
 .pick select{width:100%;min-height:32px;padding:4px 8px;font-size:12.5px}
 .pick:not(.sel) select{color:var(--ink-3)}
-.pick .xe-lbl{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:6px} .asg-table{min-width:820px}
+.pick .xe-lbl{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-top:6px} .asg-table{min-width:960px}
 th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-strong);background:var(--surface-2)}
 td.stt{color:var(--ink-3);font-variant-numeric:tabular-nums;width:48px;text-align:right}
@@ -330,10 +334,11 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
     <div style="border-top:1px solid var(--line)">
       <div class="panel-head" style="border-bottom:1px solid var(--line)">
         <h2>Danh sách phân công</h2>
+        <div class="xebar" id="xeBar" hidden><span id="xeBarText"></span><button class="btn primary small" type="button" id="xeBarSave">Lưu xe</button><button class="btn small" type="button" id="xeBarCancel">Huỷ</button></div>
         <div class="controls">
           <div class="field"><label for="lQ">Tìm</label><input type="search" id="lQ" placeholder="Giáo viên, khoá…"></div>
           <div class="field"><label for="lPos">Vị trí</label><select id="lPos" class="posSel"></select></div>
-          <div class="field"><label for="lShow">Hiển thị</label><select id="lShow"><option value="open">Chưa kết thúc</option><option value="all">Tất cả</option></select></div>
+          <div class="field"><label for="lShow">Hiển thị</label><select id="lShow"><option value="open">Chưa kết thúc</option><option value="noxe">Chưa có xe</option><option value="all">Tất cả</option></select></div>
         </div>
       </div>
       <div class="scroll"><table class="asg-table">
@@ -461,6 +466,7 @@ function demoPost(b){
   if(b.action==='add'){ b.rows.forEach(r=>RAW.assignments.push({...r,id:'DEMO'+(demoSeq++)})); return {ok:true,added:b.rows.length}; }
   if(b.action==='update'){ const i=RAW.assignments.findIndex(x=>x.id===b.row.id); if(i>=0) RAW.assignments[i]={...b.row}; return {ok:true}; }
   if(b.action==='delete'){ RAW.assignments=RAW.assignments.filter(x=>x.id!==b.id); return {ok:true}; }
+  if(b.action==='setXe'){ b.items.forEach(it=>{ const a=RAW.assignments.find(x=>String(x.id)===String(it.id)); if(a) a.xe=it.xe; }); return {ok:true}; }
   if(b.action==='addXe'){ if(RAW.xe.some(x=>plateKey(x.plate)===plateKey(b.xe.plate))) return {ok:false,error:'Biển số này đã có'}; const stt=Math.max(0,...RAW.xe.map(x=>+x.stt||0))+1; RAW.xe.push({...b.xe,stt}); return {ok:true}; }
   if(b.action==='updateXe'){ const x=RAW.xe.find(v=>plateKey(v.plate)===plateKey(b.xe.oldPlate)); if(!x) return {ok:false,error:'Không tìm thấy xe'};
     if(plateKey(b.xe.plate)!==plateKey(b.xe.oldPlate)&&RAW.xe.some(v=>plateKey(v.plate)===plateKey(b.xe.plate))) return {ok:false,error:'Biển số này đã có'};
@@ -759,12 +765,55 @@ function startEdit(a){
 function stopEdit(){ editing=null; $('#editBanner').hidden=true; $('#cancelEdit').hidden=true; $('#fNote').value=''; renderPicker(); }
 $('#cancelEdit').addEventListener('click',()=>{ selected.clear(); selXe.clear(); stopEdit(); });
 
+let pendXe=new Map(), xeConfirm=false;
+function xeOptionsFor(a,cur){
+  const r={s:a.s,e:a.e};
+  return DATA.xes.filter(x=>x.allPos||x.pos.includes(a.pos)||plateKey(cur)===x.key)
+    .sort((x,y)=>(ownsXe(a.t,y)-ownsXe(a.t,x))||(a.t.type==='Liên kết'?0:(y.center-x.center))||x.stt-y.stt)
+    .map(x=>{ const b=(DATA.byXe[x.key]||[]).filter(o=>o.id!==a.id&&o.s<=r.e&&o.e>=r.s);
+      const p=[...pendXe].some(([id,v])=>id!==a.id&&plateKey(v)===x.key&&(()=>{ const o=DATA.asg.find(z=>String(z.id)===id); return o&&o.s<=r.e&&o.e>=r.s; })());
+      const tag=b.length?` · bận đến ${fmtShort(Math.max(...b.map(o=>o.e)))}`:p?' · đang chọn cho dòng khác':' · trống';
+      return `<option value="${esc(x.plate)}" ${plateKey(cur)===x.key?'selected':''}>${esc(x.plate)}${x.hang?' · '+esc(x.hang):''}${ownsXe(a.t,x)?' · xe của GV':''}${tag}</option>`; }).join('');
+}
+function xeCell(a){
+  const id=String(a.id), dirty=pendXe.has(id), cur=dirty?pendXe.get(id):a.xe;
+  return `<select class="asg-xe ${dirty?'dirty':''}" data-xeid="${esc(id)}" aria-label="Xe cho ${esc(a.t.name)} – ${esc(a.course)}"><option value="">— Chưa có xe —</option>${xeOptionsFor(a,cur)}</select>`;
+}
+function updateXeBar(){
+  const n=pendXe.size; $('#xeBar').hidden=!n; xeConfirm=false;
+  $('#xeBarText').textContent=`Đã đổi xe cho ${n} phân công`; $('#xeBarSave').textContent='Lưu xe';
+  const w=$('#xeBar .warn'); if(w) w.remove();
+}
+$('#asgBody').addEventListener('change',e=>{
+  const id=e.target.dataset.xeid; if(!id) return;
+  const a=DATA.asg.find(z=>String(z.id)===id); if(!a) return;
+  if(plateKey(e.target.value)===plateKey(a.xe)) pendXe.delete(id); else pendXe.set(id,e.target.value);
+  renderAsgList(D_()); updateXeBar();
+});
+$('#xeBarCancel').addEventListener('click',()=>{ pendXe.clear(); updateXeBar(); renderAsgList(D_()); });
+$('#xeBarSave').addEventListener('click',async()=>{
+  const items=[...pendXe].map(([id,xe])=>({id,xe}));
+  if(!items.length) return;
+  // kiểm tra trùng xe
+  const warns=[];
+  items.forEach(({id,xe})=>{ const a=DATA.asg.find(z=>String(z.id)===id); const k=plateKey(xe); if(!a||!k) return;
+    const others=DATA.asg.filter(o=>String(o.id)!==id&&o.s<=a.e&&o.e>=a.s&&plateKey(pendXe.has(String(o.id))?pendXe.get(String(o.id)):o.xe)===k);
+    if(others.length) warns.push(`Xe ${esc(xe)} (${esc(a.t.name)}) trùng với ${others.map(o=>esc(o.t.name)+' – '+esc(o.course)).join(', ')}`); });
+  if(warns.length&&!xeConfirm){
+    xeConfirm=true; const w=document.createElement('div'); w.className='warn'; w.innerHTML='Trùng xe: '+[...new Set(warns)].join('; ')+'. Bấm "Vẫn lưu" nếu đúng như vậy.';
+    $('#xeBar').appendChild(w); $('#xeBarSave').textContent='Vẫn lưu'; return;
+  }
+  if(!await ensureAdmin()) return;
+  try{ $('#xeBarSave').disabled=true; await apiPost({action:'setXe',items}); toast(`Đã lưu xe cho ${items.length} phân công.`); pendXe.clear(); updateXeBar(); await refresh(); }
+  catch(err){ toast(err.message,true); }
+  finally{ $('#xeBarSave').disabled=false; }
+});
 function renderAsgList(D){
   const q=norm($('#lQ').value), pos=$('#lPos').value, show=$('#lShow').value;
-  let list=DATA.asg.filter(a=>(show==='all'||a.e>=D)&&(!pos||a.pos===pos)&&(!q||norm(a.t.name+' '+a.t.ma+' '+a.course+' '+a.note+' '+a.xe+' '+a.xeKey).includes(q)));
+  let list=DATA.asg.filter(a=>(show==='all'||a.e>=D)&&(show!=='noxe'||!a.xe)&&(!pos||a.pos===pos)&&(!q||norm(a.t.name+' '+a.t.ma+' '+a.course+' '+a.note+' '+a.xe+' '+a.xeKey).includes(q)));
   list.sort((a,b)=>a.course.localeCompare(b.course,'vi')||a.pos.localeCompare(b.pos,'vi')||a.t.name.localeCompare(b.t.name,'vi'));
   if(!list.length){ $('#asgBody').innerHTML='<tr><td colspan="7" class="empty">Chưa có phân công nào.</td></tr>'; return; }
-  $('#asgBody').innerHTML=list.map(a=>`<tr data-id="${esc(a.id)}"><td><div class="name">${esc(a.t.name)}</div><div class="sub">${esc(typeLabel(a.t))} ${a.conflict?'<span class="pill bad">Trùng lịch</span>':''}</div></td><td>${posTag(a.pos)}</td><td>${a.xe?plateTag(a.xe)+(a.xeConflict?' <span class="pill bad">Trùng xe</span>':''):'<span class="muted">—</span>'}</td><td>${esc(a.course)}</td><td class="num">${fmt(a.s)} → ${fmt(a.e)}<div class="sub">${a.e-a.s+1} ngày</div></td><td class="sub">${esc(a.note)}</td>
+  $('#asgBody').innerHTML=list.map(a=>`<tr data-id="${esc(a.id)}"><td><div class="name">${esc(a.t.name)}</div><div class="sub">${esc(typeLabel(a.t))} ${a.conflict?'<span class="pill bad">Trùng lịch</span>':''}</div></td><td>${posTag(a.pos)}</td><td>${xeCell(a)}${a.xeConflict?' <span class="pill bad">Trùng xe</span>':''}</td><td>${esc(a.course)}</td><td class="num">${fmt(a.s)} → ${fmt(a.e)}<div class="sub">${a.e-a.s+1} ngày</div></td><td class="sub">${esc(a.note)}</td>
     <td><div class="row-acts"><button class="btn small" data-act="edit">Sửa</button><button class="btn small danger" data-act="del">Xoá</button></div></td></tr>`).join('');
 }
 $('#asgBody').addEventListener('click',async e=>{

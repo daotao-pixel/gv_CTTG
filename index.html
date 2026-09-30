@@ -102,6 +102,7 @@ table{border-collapse:collapse;width:100%}
 .xebar .warn{color:var(--bad);font-weight:500;flex-basis:100%}
 .asg-xe{width:200px}
 .asg-xe.dirty{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);font-weight:600}
+.g-plates{display:flex!important;flex-wrap:wrap;gap:3px;margin:4px 0}.g-plates .plate{font-size:11px}
 .plate{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.02em;background:var(--accent-soft);color:var(--accent-strong);border:1px solid var(--line);border-radius:5px;padding:1px 6px;white-space:nowrap;font-size:12.5px}
 .xebtn{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-height:32px;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;font-size:12.5px;text-align:left;color:var(--ink-3)}
 .xebtn:hover{border-color:var(--accent)}
@@ -319,7 +320,8 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
         <div class="banner info" id="editBanner" hidden></div>
         <div class="field"><label for="fCourse">Khoá</label><input type="text" id="fCourse" list="courseList" placeholder="VD: K26B2-10" required><datalist id="courseList"></datalist></div>
         <div class="field"><label for="fAsgPos">Vị trí</label><select id="fAsgPos"></select></div>
-        <div class="two">
+        <div class="note" id="permanentNote" hidden>Phân công thường xuyên: không cần ngày bắt đầu/kết thúc. Phân công có hiệu lực cho đến khi được sửa hoặc xoá.</div>
+        <div class="two" id="dateFields">
           <div class="field"><label for="fStart">Bắt đầu</label><input type="date" id="fStart" required></div>
           <div class="field"><label for="fEnd">Kết thúc</label><input type="date" id="fEnd" required></div>
         </div>
@@ -344,7 +346,7 @@ td .sub,.sub{font-size:12.5px;color:var(--ink-3)}
     </form>
 
     <div id="pasteBox" hidden style="padding:16px;display:flex;flex-direction:column;gap:10px">
-      <span class="note">Cột: <code>Giáo viên</code> <code>Vị trí</code> <code>Khoá</code> <code>Bắt đầu</code> <code>Kết thúc</code> <code>Xe</code> <code>Ghi chú</code> · ngày dd/mm/yyyy · Xe và Ghi chú không bắt buộc</span>
+      <span class="note">Cột: <code>Giáo viên</code> <code>Vị trí</code> <code>Khoá</code> <code>Bắt đầu</code> <code>Kết thúc</code> <code>Xe</code> <code>Ghi chú</code> · ngày dd/mm/yyyy · Sân thô / Sa hình có thể để trống ngày · Xe và Ghi chú không bắt buộc</span>
       <textarea id="pasteText" spellcheck="false" placeholder="Giáo viên	Vị trí	Khoá	Bắt đầu	Kết thúc"></textarea>
       <div class="row-acts"><button class="btn" id="pasteCheck" type="button">Kiểm tra</button><button class="btn primary" id="pasteSave" type="button" disabled>Lưu các dòng hợp lệ</button></div>
       <div id="pasteResult"></div>
@@ -454,10 +456,19 @@ function parseDate(s){
   if(/^\d{5}$/.test(s)) return +s - 25569;
   return null;
 }
+const isPermanentPos = p => ['san tho','sa hinh'].includes(norm(p));
+const periodLabel = a => a.permanent ? 'Hoạt động thường xuyên' : fmt(a.s)+' → '+fmt(a.e);
+const busyLabel = list => list.some(a=>a.permanent) ? 'Đang hoạt động thường xuyên' : 'Bận đến '+fmtShort(Math.max(...list.map(a=>a.e)));
+function syncDateFields(){
+  const permanent=isPermanentPos($('#fAsgPos').value);
+  $('#dateFields').hidden=permanent; $('#permanentNote').hidden=!permanent;
+  ['#fStart','#fEnd'].forEach(id=>{ $(id).required=!permanent; $(id).disabled=permanent; });
+  if(!permanent){ if(!$('#fStart').value) $('#fStart').value=iso(todayNum()); if(!$('#fEnd').value) $('#fEnd').value=iso(todayNum()+30); }
+}
 const toDate = n => new Date(n*864e5);
-const fmt = n => { if(n==null) return '—'; const d=toDate(n); return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+d.getUTCFullYear(); };
-const fmtShort = n => { const d=toDate(n); return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0'); };
-const iso = n => toDate(n).toISOString().slice(0,10);
+const fmt = n => { if(n==null) return '—'; if(!Number.isFinite(n)) return 'Không giới hạn'; const d=toDate(n); return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')+'/'+d.getUTCFullYear(); };
+const fmtShort = n => { if(!Number.isFinite(n)) return 'Không giới hạn'; const d=toDate(n); return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0'); };
+const iso = n => Number.isFinite(n) ? toDate(n).toISOString().slice(0,10) : '';
 const todayNum = () => { const d=new Date(); return Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5; };
 
 // ---------- dữ liệu mẫu ----------
@@ -530,10 +541,11 @@ function build(){
   teachers.forEach(t=>{ t.key = t.ma || 'n:'+norm(t.name); if(t.ma) byMa[norm(t.ma)]=t; byName[norm(t.name)]=t; });
   const asg=[]; const orphan=[];
   RAW.assignments.forEach(a=>{
-    const s=parseDate(a.s), e=parseDate(a.e); if(s==null||e==null) return;
+    const permanent=isPermanentPos(a.pos);
+    const s=permanent?-Infinity:parseDate(a.s), e=permanent?Infinity:parseDate(a.e); if(s==null||e==null) return;
     let t = (a.ma && byMa[norm(a.ma)]) || byName[norm(a.name)];
     if(!t){ t={ma:a.ma||'',stt:9999,name:a.name||a.ma||'(không rõ)',type:'Không có trong danh sách',pos:[a.pos||'Chưa rõ vị trí'],missing:true}; t.key=t.ma||'n:'+norm(t.name); teachers.push(t); if(t.ma) byMa[norm(t.ma)]=t; byName[norm(t.name)]=t; orphan.push(t.name); }
-    asg.push({id:a.id,t,key:t.key,xe:String(a.xe||'').trim(),xeKey:plateKey(a.xe),xeConflict:false,pos:a.pos||'',course:String(a.course||'').trim(),s:Math.min(s,e),e:Math.max(s,e),note:a.note||'',conflict:false});
+    asg.push({id:a.id,t,key:t.key,xe:String(a.xe||'').trim(),xeKey:plateKey(a.xe),xeConflict:false,pos:a.pos||'',course:String(a.course||'').trim(),permanent,s:Math.min(s,e),e:Math.max(s,e),note:a.note||'',conflict:false});
   });
   const byKey={};
   asg.forEach(x=>(byKey[x.key]=byKey[x.key]||[]).push(x));
@@ -556,7 +568,7 @@ function build(){
   const xeByKey={}; xes.forEach(x=>xeByKey[x.key]=x);
   const hangs=[...new Set(xes.map(x=>x.hang).filter(Boolean))].sort();
   DATA={teachers,byMa,byName,asg,byKey,positions,types,xes,byXe,xeByKey,hangs};
-  fillSelects();
+  fillSelects(); syncDateFields();
 }
 function fillSelects(){
   $$('.posSel').forEach(el=>{ const cur=el.value; el.innerHTML='<option value="">Tất cả</option>'+DATA.positions.map(p=>`<option>${esc(p)}</option>`).join(''); el.value=DATA.positions.includes(cur)?cur:''; });
@@ -577,8 +589,8 @@ function statusOf(t, D, soon){
     let end=Math.max(...active.map(a=>a.e)), moved=true;
     while(moved){ moved=false; for(const a of list){ if(a.s<=end+1&&a.e>end){ end=a.e; moved=true; } } }
     const main=active.slice().sort((a,b)=>b.e-a.e)[0];
-    const pct=Math.max(0,Math.min(100,Math.round((D-main.s)/Math.max(1,main.e-main.s)*100)));
-    return {kind:(end-D)<soon?'soon':'busy',active,end,freeFrom:end+1,left:end-D,pct,conflict,next:future.find(a=>a.s>end)};
+    const pct=main.permanent?0:Math.max(0,Math.min(100,Math.round((D-main.s)/Math.max(1,main.e-main.s)*100)));
+    return {permanent:!Number.isFinite(end),kind:(end-D)<soon?'soon':'busy',active,end,freeFrom:end+1,left:end-D,pct,conflict,next:future.find(a=>a.s>end)};
   }
   return {kind:'free',active:[],end:null,freeFrom:D,left:0,conflict,next:future[0]};
 }
@@ -645,9 +657,9 @@ function renderStaff(rows,D){
     const label={free:'Đang trống',soon:'Sắp trống',busy:'Đang dạy'}[st.kind];
     let pills=`<span class="pill ${st.kind}">${label}</span>`;
     if(st.conflict) pills+=` <span class="pill bad">Trùng lịch</span>`;
-    const cur=st.active.length?st.active.map(a=>`<div><span class="name">${esc(a.course)}</span> · ${posTag(a.pos)} ${plateTag(a.xe)}</div><div class="sub num">${fmt(a.s)} → ${fmt(a.e)}</div>`).join(''):'<span class="muted">—</span>';
-    const done=st.active.length?`<div class="num">${fmt(st.end)}</div><div class="sub num">còn ${st.left} ngày</div><div class="meter ${st.kind==='soon'?'soon':''}"><i style="width:${st.pct}%"></i></div>`:'<span class="muted">—</span>';
-    const free=st.kind==='free'?`<b style="color:var(--free)">Ngay bây giờ</b>`:`<span class="num">${fmt(st.freeFrom)}</span>`;
+    const cur=st.active.length?st.active.map(a=>`<div><span class="name">${esc(a.course)}</span> · ${posTag(a.pos)} ${plateTag(a.xe)}</div><div class="sub num">${periodLabel(a)}</div>`).join(''):'<span class="muted">—</span>';
+    const done=st.permanent?'<span class="muted">Không giới hạn</span>':st.active.length?`<div class="num">${fmt(st.end)}</div><div class="sub num">còn ${st.left} ngày</div><div class="meter ${st.kind==='soon'?'soon':''}"><i style="width:${st.pct}%"></i></div>`:'<span class="muted">—</span>';
+    const free=st.permanent?'<span class="muted">Hoạt động thường xuyên</span>':st.kind==='free'?`<b style="color:var(--free)">Ngay bây giờ</b>`:`<span class="num">${fmt(st.freeFrom)}</span>`;
     const nxt=st.next?`<div>${esc(st.next.course)} · ${posTag(st.next.pos)}</div><div class="sub num">từ ${fmt(st.next.s)}${st.kind==='free'?` · còn trống ${st.next.s-D} ngày`:''}</div>`:`<span class="muted">Chưa có</span>`;
     return `<tr><td class="stt">${t.missing?'':t.stt}</td><td><div class="name">${esc(t.name)}</div><div class="sub">${esc(t.ma)}${t.ma?' · ':''}${esc(posLabel(t))}</div></td><td class="nw">${esc(t.type)}${t.branch?`<div class="sub">${esc(t.branch)}</div>`:''}</td><td>${pills}</td><td class="nw">${cur}</td><td>${done}</td><td class="nw">${free}</td><td>${nxt}</td><td>${t.missing?'':`<button class="btn small" data-edit="${esc(t.key)}">Sửa</button>`}</td></tr>`;
   }).join('');
@@ -677,9 +689,12 @@ function renderGantt(D){
         let ln=lanes.findIndex(end=>end<a.s); if(ln<0){ ln=lanes.length; lanes.push(a.e); } else lanes[ln]=a.e;
         const L=Math.max(a.s,lo), R=Math.min(a.e,hi);
         const cls=(a.conflict?' conflict':'')+(a.e<D?' past':'');
-        return `<div class="g-bar${cls}" style="top:${8+ln*28}px;left:${x(L)}px;width:${Math.max(W,(R-L+1)*W)}px;background:${posColor(a.pos)}" title="${esc(a.course)} · ${esc(a.pos)}${a.xe?' · xe '+esc(a.xe):''}: ${fmt(a.s)} → ${fmt(a.e)}${a.conflict?' (trùng lịch)':''}">${esc(a.course)}</div>`;
+        return `<div class="g-bar${cls}" style="top:${8+ln*28}px;left:${x(L)}px;width:${Math.max(W,(R-L+1)*W)}px;background:${posColor(a.pos)}" title="${esc(a.course)} · ${esc(a.pos)}${a.xe?' · xe '+esc(a.xe):''}: ${periodLabel(a)}${a.conflict?' (trùng lịch)':''}">${esc(a.course)}${a.permanent?' · Hoạt động thường xuyên':''}</div>`;
       }).join('');
-      html+=`<div class="g-row" style="${mw};min-height:${Math.max(40,12+lanes.length*28)}px"><div class="g-name"><b>${esc(t.name)}</b><small>${esc(typeLabel(t))}</small></div><div class="g-track" style="width:${width}px">${gridHtml}${bars}</div></div>`;
+      const assigned=vis.filter(a=>a.s<=D&&a.e>=D);
+      const plates=[...new Set((assigned.length?assigned:vis).map(a=>a.xe).filter(Boolean))];
+      const vehicleLine=plates.length?`<small class="g-plates">${plates.map(plateTag).join(' ')}</small>`:'';
+      html+=`<div class="g-row" style="${mw};min-height:${Math.max(40,12+lanes.length*28)}px"><div class="g-name"><b>${esc(t.name)}</b>${vehicleLine}<small>${esc(typeLabel(t))}</small></div><div class="g-track" style="width:${width}px">${gridHtml}${bars}</div></div>`;
     });
   });
   html+=`<div class="g-today" style="left:${190+x(D)}px"><span>Hôm nay ${fmtShort(D)}</span></div>`;
@@ -689,17 +704,17 @@ function renderGantt(D){
 function renderCourses(D){
   const f=$('#cFilter').value, map={};
   DATA.asg.forEach(a=>(map[a.course]=map[a.course]||[]).push(a));
-  let list=Object.entries(map).map(([name,items])=>({name,items,s:Math.min(...items.map(a=>a.s)),e:Math.max(...items.map(a=>a.e))}));
-  if(f==='open') list=list.filter(c=>c.e>=D);
+  let list=Object.entries(map).map(([name,items])=>({name,items,permanent:items.some(a=>a.permanent),s:Math.min(...items.filter(a=>!a.permanent).map(a=>a.s)),e:Math.max(...items.filter(a=>!a.permanent).map(a=>a.e))}));
+  if(f==='open') list=list.filter(c=>c.permanent||c.e>=D);
   list.sort((a,b)=>a.s-b.s);
   if(!list.length){ $('#courses').innerHTML='<div class="empty">Chưa có khoá nào.</div>'; return; }
   $('#courses').innerHTML=list.map(c=>{
-    const phase=D<c.s?'upcoming':D>c.e?'done':'running';
-    const ph={upcoming:`<span class="pill neutral">Bắt đầu sau ${c.s-D} ngày</span>`,running:`<span class="pill busy">Đang diễn ra</span>`,done:`<span class="pill neutral">Đã kết thúc</span>`}[phase];
+    const phase=c.permanent?'permanent':D<c.s?'upcoming':D>c.e?'done':'running';
+    const ph={permanent:'<span class="pill busy">Hoạt động thường xuyên</span>',upcoming:`<span class="pill neutral">Bắt đầu sau ${c.s-D} ngày</span>`,running:`<span class="pill busy">Đang diễn ra</span>`,done:`<span class="pill neutral">Đã kết thúc</span>`}[phase];
     const pct=phase==='running'?Math.round((D-c.s)/Math.max(1,c.e-c.s)*100):phase==='done'?100:0;
     const byPos={}; c.items.forEach(a=>(byPos[a.pos]=byPos[a.pos]||[]).push(a));
-    const groups=Object.entries(byPos).map(([p,items])=>`<div class="posgroup"><div style="display:flex;justify-content:space-between">${posTag(p)}<b class="num">${items.length}</b></div><div class="people">${items.map(a=>`<span class="chip ${a.conflict?'bad':''}" title="${fmt(a.s)} → ${fmt(a.e)}">${esc(a.t.name)} ${plateTag(a.xe)} <span class="muted num">${fmtShort(a.s)}–${fmtShort(a.e)}</span></span>`).join('')}</div></div>`).join('');
-    return `<article class="course"><div class="course-top"><div><h3>${esc(c.name)}</h3><div class="sub num">${fmt(c.s)} → ${fmt(c.e)}</div></div>${ph}</div><div class="progress"><i style="width:${pct}%"></i></div>${groups}</article>`;
+    const groups=Object.entries(byPos).map(([p,items])=>`<div class="posgroup"><div style="display:flex;justify-content:space-between">${posTag(p)}<b class="num">${items.length}</b></div><div class="people">${items.map(a=>`<span class="chip ${a.conflict?'bad':''}" title="${periodLabel(a)}">${esc(a.t.name)} ${plateTag(a.xe)} <span class="muted num">${a.permanent?'Hoạt động thường xuyên':fmtShort(a.s)+'–'+fmtShort(a.e)}</span></span>`).join('')}</div></div>`).join('');
+    return `<article class="course"><div class="course-top"><div><h3>${esc(c.name)}</h3><div class="sub num">${Number.isFinite(c.s)?fmt(c.s)+' → '+fmt(c.e):'Hoạt động thường xuyên'}</div></div>${ph}</div>${phase==='permanent'?'':`<div class="progress"><i style="width:${pct}%"></i></div>`}${groups}</article>`;
   }).join('');
 }
 
@@ -712,17 +727,17 @@ function suggestXe(t,pos,r){
   const own=DATA.xes.filter(x=>ownsXe(t,x)&&(x.allPos||x.pos.includes(pos))&&(!r||!xeBusy(x,r).length));
   return own.length===1?own[0].plate:'';
 }
-function rangeOf(){ const s=parseDate($('#fStart').value), e=parseDate($('#fEnd').value); return (s!=null&&e!=null&&e>=s)?{s,e}:null; }
+function rangeOf(){ if(isPermanentPos($('#fAsgPos').value)) return {s:-Infinity,e:Infinity,permanent:true}; const s=parseDate($('#fStart').value), e=parseDate($('#fEnd').value); return (s!=null&&e!=null&&e>=s)?{s,e}:null; }
 function overlapsOf(t,r){ return (DATA.byKey[t.key]||[]).filter(a=>a.s<=r.e&&a.e>=r.s&&(!editing||a.id!==editing.id)); }
 function renderPicker(){
-  if(!DATA) return;
+  if(!DATA) return; syncDateFields();
   const pos=$('#fAsgPos').value, all=$('#pAll').value==='all', ty=$('#pType').value, q=norm($('#pQ').value), r=rangeOf();
   let list=DATA.teachers.filter(t=>!t.missing&&(all||t.pos.includes(pos))&&(!ty||t.type===ty)&&(!q||norm(t.name+' '+t.ma).includes(q)));
   const info=list.map(t=>{ const ov=r?overlapsOf(t,r):[]; return {t,ov}; });
   info.sort((a,b)=>((a.ov.length?1:0)-(b.ov.length?1:0))||(a.t.allPos-b.t.allPos)||a.t.stt-b.t.stt);
   if(!info.length){ $('#picker').innerHTML='<div class="empty">Không có giáo viên ở vị trí này.</div>'; }
   else $('#picker').innerHTML=info.map(({t,ov})=>{
-    const st = !r ? '<span class="pill neutral">Chọn ngày để xem</span>' : ov.length ? `<span class="pill bad" title="${ov.map(a=>esc(a.course)+' '+fmt(a.s)+'→'+fmt(a.e)).join('; ')}">Bận ${esc(ov[0].course)} đến ${fmtShort(Math.max(...ov.map(a=>a.e)))}</span>` : '<span class="pill free">Trống</span>';
+    const st = !r ? '<span class="pill neutral">Chọn ngày để xem</span>' : ov.length ? `<span class="pill bad" title="${ov.map(a=>esc(a.course)+' '+periodLabel(a)).join('; ')}">${esc(ov[0].course)} · ${busyLabel(ov)}</span>` : '<span class="pill free">Trống</span>';
     const on=selected.has(t.key);
     let xeSel='';
     {
@@ -757,7 +772,7 @@ $('#picker').addEventListener('change',e=>{
 ['#pAll','#pType','#pQ','#fStart','#fEnd'].forEach(s=>$(s).addEventListener('input',renderPicker));
 $('#fAsgPos').addEventListener('input',()=>{ if(!editing) selXe.clear(); renderPicker(); });
 $('#fCourse').addEventListener('change',()=>{
-  const c=norm($('#fCourse').value); const items=DATA.asg.filter(a=>norm(a.course)===c);
+  const c=norm($('#fCourse').value); const items=DATA.asg.filter(a=>norm(a.course)===c&&!a.permanent);
   if(items.length && !editing){ $('#fStart').value=iso(Math.min(...items.map(a=>a.s))); $('#fEnd').value=iso(Math.max(...items.map(a=>a.e))); renderPicker(); }
 });
 $('#assignForm').addEventListener('submit',async e=>{
@@ -771,18 +786,18 @@ $('#assignForm').addEventListener('submit',async e=>{
   const xeBad=[]; const seen={};
   ts.forEach(t=>{ const pk=plateKey(selXe.get(t.key)); if(!pk) return;
     const x=DATA.xeByKey[pk]; const b=x?xeBusy(x,r):[];
-    if(b.length) xeBad.push(`Xe ${esc(selXe.get(t.key))} (${esc(t.name)}): đang dùng cho ${b.map(a=>esc(a.t.name)+' – '+esc(a.course)+' ('+fmtShort(a.s)+'–'+fmtShort(a.e)+')').join(', ')}`);
+    if(b.length) xeBad.push(`Xe ${esc(selXe.get(t.key))} (${esc(t.name)}): đang dùng cho ${b.map(a=>esc(a.t.name)+' – '+esc(a.course)+' ('+periodLabel(a)+')').join(', ')}`);
     if(seen[pk]) xeBad.push(`Xe ${esc(selXe.get(t.key))} được chọn cho cả ${esc(seen[pk])} và ${esc(t.name)}`); else seen[pk]=t.name; });
   const noXe=ts.filter(t=>!selXe.get(t.key)).length;
   if((bad.length||xeBad.length) && !confirmPending){
     confirmPending=true;
     const box=$('#conflictBox'); box.hidden=false;
-    box.innerHTML=`${bad.length?`<b>${bad.length} giáo viên bị trùng lịch:</b><div>${bad.map(x=>`${esc(x.t.name)}: ${x.ov.map(a=>esc(a.course)+' ('+fmtShort(a.s)+'–'+fmtShort(a.e)+')').join(', ')}`).join('<br>')}</div>`:''}${xeBad.length?`<b>Trùng xe:</b><div>${xeBad.join('<br>')}</div>`:''}<div class="acts"><button type="submit" class="btn danger small">Vẫn lưu</button>${bad.length?'<button type="button" class="btn small" id="dropBad">Bỏ GV trùng lịch</button>':''}</div>`;
+    box.innerHTML=`${bad.length?`<b>${bad.length} giáo viên bị trùng lịch:</b><div>${bad.map(x=>`${esc(x.t.name)}: ${x.ov.map(a=>esc(a.course)+' ('+periodLabel(a)+')').join(', ')}`).join('<br>')}</div>`:''}${xeBad.length?`<b>Trùng xe:</b><div>${xeBad.join('<br>')}</div>`:''}<div class="acts"><button type="submit" class="btn danger small">Vẫn lưu</button>${bad.length?'<button type="button" class="btn small" id="dropBad">Bỏ GV trùng lịch</button>':''}</div>`;
     if(bad.length) $('#dropBad').onclick=()=>{ bad.forEach(x=>{ selected.delete(x.t.key); selXe.delete(x.t.key); }); renderPicker(); };
     return;
   }
   if(!await ensureAdmin()) return;
-  const rows=ts.map(t=>({ma:t.ma,name:t.name,pos,course,s:iso(r.s),e:iso(r.e),note,xe:selXe.get(t.key)||''}));
+  const rows=ts.map(t=>({ma:t.ma,name:t.name,pos,course,s:r.permanent?'':iso(r.s),e:r.permanent?'':iso(r.e),note,xe:selXe.get(t.key)||''}));
   try{
     $('#saveBtn').disabled=true;
     if(editing){ await apiPost({action:'update',row:{...rows[0],id:editing.id}}); toast('Đã lưu thay đổi.'); }
@@ -793,7 +808,7 @@ $('#assignForm').addEventListener('submit',async e=>{
 });
 function startEdit(a){
   editing=a; selected=new Set([a.key]); selXe=new Map([[a.key,a.xe]]);
-  $('#fCourse').value=a.course; $('#fAsgPos').value=a.pos; $('#fStart').value=iso(a.s); $('#fEnd').value=iso(a.e); $('#fNote').value=a.note;
+  $('#fCourse').value=a.course; $('#fAsgPos').value=a.pos; $('#fStart').value=iso(a.s)||iso(todayNum()); $('#fEnd').value=iso(a.e)||iso(todayNum()+30); $('#fNote').value=a.note;
   const b=$('#editBanner'); b.hidden=false; b.innerHTML=`Đang sửa phân công của <b>${esc(a.t.name)}</b> ở khoá <b>${esc(a.course)}</b>. Chọn người khác ở danh sách bên phải nếu muốn đổi giáo viên.`;
   $('#cancelEdit').hidden=false; setMode('form'); showView('assign'); renderPicker();
   $('#assignForm').scrollIntoView({behavior:'smooth',block:'start'});
@@ -810,7 +825,7 @@ let XP=null;
 function openXp(ctx){
   XP=ctx;
   $('#xpTitle').textContent=ctx.title;
-  $('#xpCtx').textContent = ctx.sub || `${ctx.pos}${ctx.r?` · ${fmt(ctx.r.s)} → ${fmt(ctx.r.e)}`:''}`;
+  $('#xpCtx').textContent = ctx.sub || `${ctx.pos}${ctx.r?` · ${isPermanentPos(ctx.pos)?'Hoạt động thường xuyên':fmt(ctx.r.s)+' → '+fmt(ctx.r.e)}`:''}`;
   $('#xpQ').value=''; $('#xpPos').value='same'; $('#xpFree').value='free';
   $('#xpHang').innerHTML='<option value="">Tất cả</option>'+DATA.hangs.map(h=>`<option>${esc(h)}</option>`).join('');
   $('#xpNone').hidden=!ctx.cur;
@@ -833,7 +848,7 @@ function renderXp(){
   rows.sort((a,b)=>(b.cur-a.cur)||(b.own-a.own)||((a.busy.length||a.taken?1:0)-(b.busy.length||b.taken?1:0))||(t&&t.type==='Liên kết'?0:(b.x.center-a.x.center))||a.x.stt-b.x.stt);
   $('#xpCount').textContent=`${rows.length} xe${onlyFree?' trống':''}`;
   $('#xpList').innerHTML = rows.length ? rows.map(o=>{
-    const st = o.busy.length ? `<span class="pill bad" title="${o.busy.map(a=>esc(a.t.name)+' – '+esc(a.course)).join('; ')}">Bận đến ${fmtShort(Math.max(...o.busy.map(a=>a.e)))}</span>`
+    const st = o.busy.length ? `<span class="pill bad" title="${o.busy.map(a=>esc(a.t.name)+' – '+esc(a.course)).join('; ')}">${busyLabel(o.busy)}</span>`
       : o.taken ? `<span class="pill soon">Đang chọn cho ${esc(o.taken.split(' ').slice(-1)[0])}</span>` : '<span class="pill free">Trống</span>';
     const own = o.own ? '<b>Xe của GV</b>' : o.x.center ? 'Trung tâm' : esc(o.x.owner);
     const busyWho = o.busy.length ? `<div class="own">${esc(o.busy[0].t.name)}</div>` : '';
@@ -853,7 +868,7 @@ function xeOptionsFor(a,cur){
     .sort((x,y)=>(ownsXe(a.t,y)-ownsXe(a.t,x))||(a.t.type==='Liên kết'?0:(y.center-x.center))||x.stt-y.stt)
     .map(x=>{ const b=(DATA.byXe[x.key]||[]).filter(o=>o.id!==a.id&&o.s<=r.e&&o.e>=r.s);
       const p=[...pendXe].some(([id,v])=>id!==a.id&&plateKey(v)===x.key&&(()=>{ const o=DATA.asg.find(z=>String(z.id)===id); return o&&o.s<=r.e&&o.e>=r.s; })());
-      const tag=b.length?` · bận đến ${fmtShort(Math.max(...b.map(o=>o.e)))}`:p?' · đang chọn cho dòng khác':' · trống';
+      const tag=b.length?` · ${busyLabel(b)}`:p?' · đang chọn cho dòng khác':' · trống';
       return `<option value="${esc(x.plate)}" ${plateKey(cur)===x.key?'selected':''}>${esc(x.plate)}${x.hang?' · '+esc(x.hang):''}${ownsXe(a.t,x)?' · xe của GV':''}${tag}</option>`; }).join('');
 }
 function xeCell(a){
@@ -870,7 +885,7 @@ $('#asgBody').addEventListener('click',e=>{
   const id=b.dataset.xeid, a=DATA.asg.find(z=>String(z.id)===id); if(!a) return;
   const taken=new Map();
   pendXe.forEach((v,oid)=>{ if(oid===id||!v) return; const o=DATA.asg.find(z=>String(z.id)===oid); if(o&&o.s<=a.e&&o.e>=a.s) taken.set(plateKey(v),o.t.name); });
-  openXp({title:`Chọn xe cho ${a.t.name}`, sub:`${a.course} · ${a.pos} · ${fmt(a.s)} → ${fmt(a.e)}`, t:a.t, pos:a.pos, r:{s:a.s,e:a.e}, cur:pendXe.has(id)?pendXe.get(id):a.xe, exclude:a.id, taken,
+  openXp({title:`Chọn xe cho ${a.t.name}`, sub:`${a.course} · ${a.pos} · ${periodLabel(a)}`, t:a.t, pos:a.pos, r:{s:a.s,e:a.e}, cur:pendXe.has(id)?pendXe.get(id):a.xe, exclude:a.id, taken,
     onPick:plate=>{ if(plateKey(plate)===plateKey(a.xe)) pendXe.delete(id); else pendXe.set(id,plate); renderAsgList(D_()); updateXeBar(); } });
 });
 $('#xeBarCancel').addEventListener('click',()=>{ pendXe.clear(); updateXeBar(); renderAsgList(D_()); });
@@ -896,7 +911,7 @@ function renderAsgList(D){
   let list=DATA.asg.filter(a=>(show==='all'||a.e>=D)&&(show!=='noxe'||!a.xe)&&(!pos||a.pos===pos)&&(!q||norm(a.t.name+' '+a.t.ma+' '+a.course+' '+a.note+' '+a.xe+' '+a.xeKey).includes(q)));
   list.sort((a,b)=>a.course.localeCompare(b.course,'vi')||a.pos.localeCompare(b.pos,'vi')||a.t.name.localeCompare(b.t.name,'vi'));
   if(!list.length){ $('#asgBody').innerHTML='<tr><td colspan="7" class="empty">Chưa có phân công nào.</td></tr>'; return; }
-  $('#asgBody').innerHTML=list.map(a=>`<tr data-id="${esc(a.id)}"><td><div class="name">${esc(a.t.name)}</div><div class="sub">${esc(typeLabel(a.t))} ${a.conflict?'<span class="pill bad">Trùng lịch</span>':''}</div></td><td>${posTag(a.pos)}</td><td>${xeCell(a)}${a.xeConflict?' <span class="pill bad">Trùng xe</span>':''}</td><td>${esc(a.course)}</td><td class="num">${fmt(a.s)} → ${fmt(a.e)}<div class="sub">${a.e-a.s+1} ngày</div></td><td class="sub">${esc(a.note)}</td>
+  $('#asgBody').innerHTML=list.map(a=>`<tr data-id="${esc(a.id)}"><td><div class="name">${esc(a.t.name)}</div><div class="sub">${esc(typeLabel(a.t))} ${a.conflict?'<span class="pill bad">Trùng lịch</span>':''}</div></td><td>${posTag(a.pos)}</td><td>${xeCell(a)}${a.xeConflict?' <span class="pill bad">Trùng xe</span>':''}</td><td>${esc(a.course)}</td><td class="num">${periodLabel(a)}${a.permanent?'':`<div class="sub">${a.e-a.s+1} ngày</div>`}</td><td class="sub">${esc(a.note)}</td>
     <td><div class="row-acts"><button class="btn small" data-act="edit">Sửa</button><button class="btn small danger" data-act="del">Xoá</button></div></td></tr>`).join('');
 }
 $('#asgBody').addEventListener('click',async e=>{
@@ -928,11 +943,11 @@ $('#pasteCheck').addEventListener('click',()=>{
     const s=parseDate(c[iS]), e=parseDate(c[iE]);
     if(!t||t.missing) return errs.push(`Dòng ${ln}: không tìm thấy giáo viên "${esc(who)}"`);
     if(!c[iK]) return errs.push(`Dòng ${ln}: thiếu tên khoá`);
-    if(s==null||e==null) return errs.push(`Dòng ${ln}: ngày không đọc được`);
     const p=DATA.positions.find(x=>norm(x)===norm(c[iP]))||c[iP]||t.pos[0];
+    if(!isPermanentPos(p)&&(s==null||e==null)) return errs.push(`Dòng ${ln}: ngày không đọc được`);
     const xeIn=(c[iX]||'').trim(); const xeObj=xeIn?DATA.xeByKey[plateKey(xeIn)]:null;
     if(xeIn&&!xeObj) return errs.push(`Dòng ${ln}: không có xe "${esc(xeIn)}" trong danh sách xe`);
-    pasteRows.push({ma:t.ma,name:t.name,pos:p,course:c[iK],s:iso(Math.min(s,e)),e:iso(Math.max(s,e)),note:c[iG]||'',xe:xeObj?xeObj.plate:''});
+    pasteRows.push({ma:t.ma,name:t.name,pos:p,course:c[iK],s:isPermanentPos(p)?'':iso(Math.min(s,e)),e:isPermanentPos(p)?'':iso(Math.max(s,e)),note:c[iG]||'',xe:xeObj?xeObj.plate:''});
   });
   $('#pasteResult').innerHTML=`<div class="banner ${errs.length?'warn':'info'}"><b>${pasteRows.length} dòng hợp lệ${errs.length?`, ${errs.length} dòng lỗi`:''}.</b>${errs.length?`<div>${errs.slice(0,15).join('<br>')}${errs.length>15?'<br>…':''}</div>`:''}</div>`;
   $('#pasteSave').disabled=!pasteRows.length;
@@ -951,7 +966,7 @@ function xeStatus(x,D){
   const conflict=list.some(a=>a.xeConflict&&a.e>=D);
   if(active.length){ let end=Math.max(...active.map(a=>a.e)), moved=true;
     while(moved){ moved=false; for(const a of list){ if(a.s<=end+1&&a.e>end){ end=a.e; moved=true; } } }
-    return {kind:(end-D)<SOON_DAYS?'soon':'busy',active,end,freeFrom:end+1,left:end-D,conflict,next:future.find(a=>a.s>end)}; }
+    return {permanent:!Number.isFinite(end),kind:(end-D)<SOON_DAYS?'soon':'busy',active,end,freeFrom:end+1,left:end-D,conflict,next:future.find(a=>a.s>end)}; }
   return {kind:'free',active:[],freeFrom:D,conflict,next:future[0]};
 }
 function renderXe(D){
@@ -973,8 +988,8 @@ function renderXe(D){
   $('#xeBody').innerHTML=list.map(({x,st})=>{
     const label={free:'Trống',soon:'Sắp trống',busy:'Đang dùng'}[st.kind];
     let pills=`<span class="pill ${st.kind}">${label}</span>`; if(st.conflict) pills+=' <span class="pill bad">Trùng xe</span>';
-    const using=st.active.length?st.active.map(a=>`<div><span class="name">${esc(a.t.name)}</span></div><div class="sub">${esc(a.course)} · ${esc(a.pos)} · đến ${fmt(a.e)}</div>`).join(''):'<span class="muted">—</span>';
-    const free=st.kind==='free'?'<b style="color:var(--free)">Ngay bây giờ</b>':`<span class="num">${fmt(st.freeFrom)}</span><div class="sub">còn ${st.left} ngày</div>`;
+    const using=st.active.length?st.active.map(a=>`<div><span class="name">${esc(a.t.name)}</span></div><div class="sub">${esc(a.course)} · ${esc(a.pos)} · ${a.permanent?'Hoạt động thường xuyên':'đến '+fmt(a.e)}</div>`).join(''):'<span class="muted">—</span>';
+    const free=st.permanent?'<span class="muted">Hoạt động thường xuyên</span>':st.kind==='free'?'<b style="color:var(--free)">Ngay bây giờ</b>':`<span class="num">${fmt(st.freeFrom)}</span><div class="sub">còn ${st.left} ngày</div>`;
     const nxt=st.next?`<div>${esc(st.next.t.name)}</div><div class="sub num">${esc(st.next.course)} · từ ${fmt(st.next.s)}</div>`:'<span class="muted">Chưa có</span>';
     return `<tr><td class="stt">${x.stt}</td><td>${plateTag(x.plate)}</td><td>${esc(x.hang)||'<span class="muted">—</span>'}</td><td>${x.center?'Trung tâm':esc(x.owner)}</td><td class="nw">${x.noPos?'<span class="muted">Chưa xếp</span>':x.allPos?'Tất cả':x.pos.map(posTag).join('<br>')}</td><td>${pills}</td><td>${using}</td><td class="nw">${free}</td><td>${nxt}</td><td><button class="btn small" data-xedit="${esc(x.key)}">Sửa</button></td></tr>`;
   }).join('');
